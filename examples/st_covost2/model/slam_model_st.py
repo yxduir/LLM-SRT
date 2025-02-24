@@ -14,9 +14,14 @@ from slam_llm.utils.train_utils import print_module_size, print_model_size
 from peft import PeftModel, PeftConfig
 from torch.nn import CrossEntropyLoss
 from slam_llm.utils.metric import compute_accuracy
-
+from transformers import SeamlessM4Tv2ForSpeechToText,SeamlessM4Tv2ForTextToText
 import logging
+
+from transformers import StoppingCriteria, StoppingCriteriaList
+
 logger = logging.getLogger(__name__)
+
+
 
 def model_factory(train_config, model_config, **kwargs):
     # return necessary components for training
@@ -26,6 +31,7 @@ def model_factory(train_config, model_config, **kwargs):
 
     # llm
     llm = setup_llm(train_config, model_config, **kwargs)
+    print(llm.config.bos_token_id)  # 应为非None值
 
     # projector
     encoder_projector = setup_encoder_projector(
@@ -40,14 +46,17 @@ def model_factory(train_config, model_config, **kwargs):
         model_config,
         **kwargs,
     )
+    
 
     ckpt_path = kwargs.get("ckpt_path", None) #FIX(MZY): load model ckpt(mainly projector, related to model_checkpointing/checkpoint_handler.py: save_model_checkpoint_peft)
+    print(ckpt_path)
     if ckpt_path is not None:
             logger.info("loading other parts from: {}".format(ckpt_path))
             ckpt_dict = torch.load(ckpt_path, map_location="cpu")
             model.load_state_dict(ckpt_dict, strict=False)
 
     print_model_size(model, train_config, int(os.environ["RANK"]) if train_config.enable_fsdp or train_config.enable_ddp else 0)
+    # print(model)
     return model, tokenizer
 
 
@@ -60,7 +69,9 @@ def setup_tokenizer(train_config, model_config, **kwargs):
                                             trust_remote_code=True,
                                             use_fast=False)
     else:
-        tokenizer = AutoTokenizer.from_pretrained(model_config.llm_path)
+        tokenizer = AutoTokenizer.from_pretrained(model_config.llm_path,trust_remote_code=True)
+        new_tokens = ["<|eng|>", "<|cmn|>", "专用术语"]  # 替换为你要扩展的 token
+
         tokenizer.pad_token_id = tokenizer.eos_token_id
     return tokenizer
 
@@ -112,78 +123,18 @@ def setup_encoder(train_config, model_config, **kwargs):
 def setup_llm(train_config, model_config, **kwargs):
     from pkg_resources import packaging
     use_cache = False if train_config.enable_fsdp or train_config.enable_ddp else None
-    if (train_config.enable_fsdp or train_config.enable_ddp) and train_config.low_cpu_fsdp:
-        """
-        for FSDP, we can save cpu memory by loading pretrained model on rank0 only.
-        this avoids cpu oom when loading large models like llama 70B, in which case
-        model alone would consume 2+TB cpu mem (70 * 4 * 8). This will add some comms
-        overhead and currently requires latest nightly.
-        """
-        # v = packaging.version.parse(torch.__version__)
-        # verify_latest_nightly = v.is_devrelease and v.dev >= 20230701
-        # if not verify_latest_nightly:
-        #     raise Exception("latest pytorch nightly build is required to run with low_cpu_fsdp config, "
-        #                     "please install latest nightly.")
-        rank = int(os.environ["RANK"])
-        if rank == 0:
-            if "vallex" in model_config.llm_name.lower():
-                from src.slam_llm.models.vallex.vallex_config import VallexConfig
-                from src.slam_llm.models.vallex.vallex_model import VALLE
-                vallex_config = VallexConfig(
-                    **model_config
-                )
-                model = VALLE(vallex_config)
-            elif "aya" in model_config.llm_name.lower():
-                model = AutoModelForSeq2SeqLM.from_pretrained(
-                    model_config.llm_path,
-                    load_in_8bit=True if train_config.quantization else None,
-                    device_map="auto" if train_config.quantization else None,
-                    use_cache=use_cache,
-                )
-            else:
-                model = AutoModelForCausalLM.from_pretrained(
-                    model_config.llm_path,
-                    load_in_8bit=True if train_config.quantization else None,
-                    device_map="auto" if train_config.quantization else None,
-                    use_cache=use_cache,
-                    attn_implementation="flash_attention_2" if train_config.use_fast_kernels else None,
-                    torch_dtype=torch.bfloat16
-                )
-        else:
-            llama_config = AutoConfig.from_pretrained(model_config.llm_path)
-            llama_config.use_cache = use_cache
-            # with torch.device("meta"):
-            if "aya" in model_config.llm_name.lower():
-                model = AutoModelForSeq2SeqLM(llama_config)
-            else:
-                model = AutoModelForCausalLM(llama_config) #(FIX:MZY): torch 2.0.1 does not support `meta`
-
-    else:
-        if "vallex" in model_config.llm_name.lower():
-            from src.slam_llm.models.vallex.vallex_config import VallexConfig
-            from src.slam_llm.models.vallex.vallex_model import VALLE
-            vallex_config = VallexConfig(
-                **model_config
-            )
-            model = VALLE(vallex_config)
-        elif "aya" in model_config.llm_name.lower():
-            model = AutoModelForSeq2SeqLM.from_pretrained(
-                model_config.llm_path,
-                load_in_8bit=True if train_config.quantization else None,
-                device_map="auto" if train_config.quantization else None,
-                use_cache=use_cache,
-                attn_implementation="flash_attention_2" if train_config.use_fast_kernels else None,
-                torch_dtype=torch.bfloat16
-            )
-        else:
-            model = AutoModelForCausalLM.from_pretrained(
-                model_config.llm_path,
-                load_in_8bit=True if train_config.quantization else None,
-                device_map="auto" if train_config.quantization else None,
-                use_cache=use_cache,
-                attn_implementation="flash_attention_2" if train_config.use_fast_kernels else None,
-                torch_dtype=torch.bfloat16
-            )
+    
+    model = AutoModelForCausalLM.from_pretrained(
+        model_config.llm_path,
+        load_in_8bit=True if train_config.quantization else None,
+        device_map="auto" if train_config.quantization else None,
+        use_cache=use_cache,
+        attn_implementation="flash_attention_2" if train_config.use_fast_kernels else None,
+        torch_dtype=torch.bfloat16,
+        trust_remote_code=True
+    )
+    # print(model)
+    
 
     print_module_size(model, model_config.llm_name, int(os.environ["RANK"]) if train_config.enable_fsdp or train_config.enable_ddp else 0)
 
@@ -204,8 +155,11 @@ def setup_llm(train_config, model_config, **kwargs):
         logger.info("setup peft...")
         peft_config = generate_peft_config(train_config)
         model = get_peft_model(model, peft_config)
+        model = get_peft_model(model, peft_config)
+        model.config.bos_token_id = 151643
         model.print_trainable_parameters()
 
+    print(model)
     print_module_size(model, model_config.llm_name, int(os.environ["RANK"]) if train_config.enable_fsdp or train_config.enable_ddp else 0)
     return model
 
@@ -240,6 +194,7 @@ class slam_model(nn.Module):
         # modality encoder 
         self.encoder = encoder
 
+
         # llm
         self.llm = llm
 
@@ -248,6 +203,7 @@ class slam_model(nn.Module):
 
         # tokenizer
         self.tokenizer = tokenizer
+
         self.metric = kwargs.get("metric", "acc")
 
         self.train_config = train_config
@@ -295,6 +251,9 @@ class slam_model(nn.Module):
         # for text encoder
         instruct_ids = kwargs.get("instruct_ids", None)
         instruct_mask = kwargs.get("instruct_mask", None)
+
+        modality_mask = kwargs.get("modality_mask", None)
+
 
         
         encoder_outs = None
@@ -346,8 +305,6 @@ class slam_model(nn.Module):
             if self.model_config.encoder_projector == "linear":
                 encoder_outs = self.encoder_projector(encoder_outs)
         
-        input_ids = input_ids[:, 80:]
-
 
         if input_ids is not None:
             input_ids[input_ids == -1] = 0
@@ -361,12 +318,22 @@ class slam_model(nn.Module):
                 else:
                     inputs_embeds = self.llm.model.model.model.embed_tokens(input_ids)
 
-        inputs_embeds = torch.cat((encoder_outs, inputs_embeds), dim=1)
-        
+        if modality_mask is not None:
+            modality_mask_start_indices = (modality_mask == True).float().argmax(dim=1)
+            modality_lengths = torch.clamp(modality_mask.sum(dim=1), max=encoder_outs.shape[1]).tolist()
+
+            encoder_outs_pad = torch.zeros_like(inputs_embeds)
+            for i in range(encoder_outs.shape[0]):
+                encoder_outs_pad[
+                    i, modality_mask_start_indices[i]:modality_mask_start_indices[i]+modality_lengths[i]
+                ] = encoder_outs[i][:modality_lengths[i]]
+            
+            inputs_embeds = encoder_outs_pad + inputs_embeds * (~modality_mask[:, :, None])
+
         if kwargs.get("inference_mode", False):
             return inputs_embeds, attention_mask
 
-
+        # print(inputs_embeds.shape)
         model_outputs = self.llm(inputs_embeds=inputs_embeds, attention_mask=attention_mask, labels=labels,)
         acc = -1
         if self.metric:
@@ -407,22 +374,24 @@ class slam_model(nn.Module):
             **kwargs,
         )
 
+        
         model_outputs = self.llm.generate(
             inputs_embeds=inputs_embeds,
-            # max_length=kwargs.get("max_length", 200),
-            max_new_tokens=kwargs.get("max_new_tokens", 150),
-            num_beams=kwargs.get("num_beams", 4),
+            max_new_tokens=kwargs.get("max_new_tokens", 300),
+            num_beams=kwargs.get("num_beams", 5),
             do_sample=kwargs.get("do_sample", False),
-            min_length=kwargs.get("min_length", 1),
+            min_length=kwargs.get("min_new_tokens", 10),
             top_p=kwargs.get("top_p", 1.0),
-            repetition_penalty=kwargs.get("repetition_penalty", 1.0),
+            repetition_penalty=kwargs.get("repetition_penalty", 1),
             length_penalty=kwargs.get("length_penalty", 1.0),
             temperature=kwargs.get("temperature", 1.0),
-            no_repeat_ngram_size=4,
+            no_repeat_ngram_size=5,
             early_stopping=True,
             attention_mask=attention_mask,
-            bos_token_id=self.tokenizer.bos_token_id,
-            eos_token_id=self.tokenizer.eos_token_id,
-            pad_token_id=self.tokenizer.pad_token_id
+            eos_token_id=[151643,151645],
+            bos_token_id=self.tokenizer.eos_token_id,
+            pad_token_id=self.tokenizer.pad_token_id,
         )
+
+
         return model_outputs

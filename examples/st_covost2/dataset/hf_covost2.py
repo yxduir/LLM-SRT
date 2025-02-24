@@ -88,16 +88,19 @@ class SpeechDatasetJsonl(torch.utils.data.Dataset):
             if len(parts) == 2 and parts[0] in lang_map and parts[1] in lang_map:
                 return f"{lang_map[parts[0]]}_{lang_map[parts[1]]}"
             return code  # 如果不匹配规则，则返回原字符串
-        
-        lang = convert_lang_code(self.source)
-        langs = lang.split("_")
 
         data_dict = self.ds[index]
 
 
+        
+        texts = ["zh","de","ja"]
+        text = texts[0]
+        source = "en_"+text
+        lang = convert_lang_code(source)
+        langs = lang.split("_")
         prompt =  "<|"+langs[0]+"|><|"+langs[1]+"|>"
 
-        target = data_dict["sentence"]+prompt+data_dict["translation"]
+        target = data_dict["en"]+prompt+data_dict[text]
         
 
         
@@ -105,6 +108,7 @@ class SpeechDatasetJsonl(torch.utils.data.Dataset):
             print(prompt)
             print(target)
             self.printed = True  
+
 
         audio_raw = whisper.pad_or_trim(data_dict["audio"]["array"])
         audio_raw = torch.tensor(audio_raw, dtype=torch.float32)  

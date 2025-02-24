@@ -1,6 +1,7 @@
-export TOKENIZERS_PARALLELISM=false
+# export TOKENIZERS_PARALLELISM=false
 export WANDB_MODE=offline
-export CUDA_VISIBLE_DEVICES=1,2,3,4
+# export HYDRA_FULL_ERROR=1
+export CUDA_VISIBLE_DEVICES=1,2,3,4,5
 if command -v nvidia-smi &> /dev/null; then
     gpu_count=$(nvidia-smi --query-gpu=name --format=csv,noheader | wc -l)
 if [ -n "$CUDA_VISIBLE_DEVICES" ]; then
@@ -11,38 +12,36 @@ echo "GPU number: $gpu_count"
 
 current_script=$(readlink -f "$0")
 current_dir=$(dirname "$current_script")
-code_dir=$(realpath "$current_dir/../../../../")
-cd ${code_dir}/SLAM-LLM
+code=$(realpath "$current_dir/../../../../")
+cd ${code}/SLAM-LLM
 
+source=covost_en
+checkpoint_dir=${code}/data/output/asr-3B-encoder-15lang
+output_dir=${code}/data/output/asr-3B-encoder-15lang-mmt
 
+encoder_path_hf=${code}/models/whisper-large-v3
+llm_path=${code}/models/Qwen2.5-3B
+#change your train data
 
-source=all
-checkpoint_dir=${code_dir}/speech/data/qwen/asr-Qwen2.5_7B-2
-output_dir=${code_dir}/speech/data/qwen/asr-Qwen2.5_7B-3
+/mgData3/zhaozhiyuan/vits/hit/code/
+train_data_path=${code}/SLAM-LLM/examples/st_covost2/mmt-all/wavs/mmt_train_200.jsonl
+val_data_path=${code}/SLAM-LLM/examples/st_covost2/mmt-all/wavs/mmt_test.jsonl
 
-encoder_path_hf=${code_dir}/speech/models/whisper-large-v3
-llm_path=${code_dir}/speech/models/Qwen2.5-7B
-# llm_path=/mgData3/zhaozhiyuan/vits/hit/SLAM-LLM/examples/st_covost2/mmt-all/fleurs/fleurs_meta/seamless-m4t-v2-large
-
-# /mgData3/zhaozhiyuan/vits/hit/SLAM-LLM/examples/st_covost2/mmt-all/fleurs/fleurs_mix/mmt_test.jsonl
-# /mgData3/zhaozhiyuan/vits/hit/SLAM-LLM/examples/st_covost2/mmt-all/enzh-mix/common_train.jsonl
-# #change your train data
-
-train_data_path=${code_dir}/SLAM-LLM/examples/st_covost2/mmt-all/mix6_lang/train_en_100.jsonl
-val_data_path=${code_dir}/SLAM-LLM/examples/st_covost2/mmt-all/mix6_lang/test_en.jsonl
-
-
-# Find End checkpoint
 max_epoch=$(ls -d ${checkpoint_dir}/asr_epoch_*_step_* | sed -n 's/.*asr_epoch_\([0-9]*\)_step_\([0-9]*\).*/\1/p' | sort -n | tail -1)
 max_step=$(ls -d ${checkpoint_dir}/asr_epoch_${max_epoch}_step_* | sed -n 's/.*asr_epoch_[0-9]*_step_\([0-9]*\).*/\1/p' | sort -n | tail -1)
 
-
+# 构建最终的路径
 final_path="${checkpoint_dir}/asr_epoch_${max_epoch}_step_${max_step}"
 
 
-ckpt_name=$final_path/model.pt
 
-echo $ckpt_name
+ckpt_name=$final_path/model.pt
+# ckpt_name=/home/yxdu/hit/SLAM-LLM/cotst/model.pt
+# 使用find命令搜索所有.pt文件，并获取最后修改日期最晚的文件
+
+
+# 打印找到的 ckpt 文件
+echo "找到的最新 .pt 文件为: $ckpt_name"
 
 
 
@@ -51,7 +50,7 @@ hydra_args="
 hydra.run.dir=$output_dir \
 ++model_config.llm_name=Qwen \
 ++model_config.llm_path=$llm_path \
-++model_config.llm_dim=3584 \
+++model_config.llm_dim=2048 \
 ++model_config.encoder_name=whisper \
 ++model_config.encoder_projector_ds_rate=5 \
 ++model_config.encoder_path=$speech_encoder_path \
@@ -60,7 +59,7 @@ hydra.run.dir=$output_dir \
 ++model_config.encoder_projector=q-former \
 ++model_config.query_len=80 \
 ++dataset_config.dataset=st_dataset \
-++dataset_config.file="examples/st_covost2/dataset/st_dataset.py:get_speech_dataset" \
+++dataset_config.file=examples/st_covost2/dataset/st_dataset.py:get_speech_dataset \
 ++dataset_config.train_data_path=$train_data_path \
 ++dataset_config.val_data_path=$val_data_path \
 ++dataset_config.input_type=mel \
@@ -68,19 +67,20 @@ hydra.run.dir=$output_dir \
 ++dataset_config.fix_length_audio=80 \
 ++dataset_config.source=$source \
 ++train_config.model_name=asr \
-++train_config.num_epochs=50 \
-++train_config.freeze_encoder=true \
+++train_config.num_epochs=10 \
+++train_config.freeze_encoder=false \
 ++train_config.freeze_llm=true \
 ++train_config.batching_strategy=custom \
 ++train_config.gradient_accumulation_steps=1 \
 ++train_config.warmup_steps=1000 \
-++train_config.total_steps=500000 \
-++train_config.lr=1e-4 \
-++train_config.batch_size_training=32 \
-++train_config.val_batch_size=64 \
-++train_config.num_workers_dataloader=8 \
+++train_config.total_steps=1000000 \
+++train_config.lr=1e-5 \
+++train_config.batch_size_training=8 \
+++train_config.val_batch_size=16 \
+++train_config.num_workers_dataloader=16 \
 ++train_config.output_dir=$output_dir \
 ++metric=acc \
+++train_config.use_fp16=false \
 ++ckpt_path=$ckpt_name \
 "
 
@@ -90,16 +90,17 @@ torchrun \
     --nnodes 1 \
     --nproc_per_node ${gpu_count} \
     --master_port=29504 \
-    ${code_dir}/SLAM-LLM/examples/st_covost2/finetune_asr.py \
+    ${code}/SLAM-LLM/examples/st_covost2/finetune_asr.py \
     --config-path "conf" \
     --config-name "prompt.yaml" \
     ++train_config.enable_fsdp=false \
     ++train_config.enable_ddp=true \
     ++fsdp_config.pure_bf16=true \
-    ++log_config.use_wandb=true \
-    ++log_config.wandb_project_name=SLAM \
-    ++train_config.validation_interval=2000 \
-    ++log_config.wandb_exp_name=asr-zh \
+    ++log_config.use_wandb=false \
+    ++log_config.wandb_project_name=cot \
+    ++train_config.validation_interval=1000 \
+    ++log_config.wandb_exp_name=all \
     ++train_config.use_peft=false \
     $hydra_args
 fi
+        

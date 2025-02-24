@@ -112,7 +112,9 @@ class DataConfig:
         "help": "whether input is normalized, used for models such as wavlm"
     })
     bf16:bool = True
+    fp16:bool = True
     source: Optional[str] = None
+    mode: Optional[str] = None
 
 @dataclass
 class FSDPConfig:
@@ -129,7 +131,7 @@ class FSDPConfig:
 class LogConfig:
     use_wandb: bool = False
     wandb_dir: str = "test_wandb"
-    wandb_entity_name: str = "sdinger"
+    wandb_entity_name: str = "yxduir"
     wandb_project_name: str = "project_name"
     wandb_exp_name: str = "exp_name"
     log_file: str = "./test.log"

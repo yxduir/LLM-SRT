@@ -9,17 +9,20 @@ from slam_llm.utils.metric import compute_accuracy
 class EncoderProjectorQFormer(nn.Module):
     def __init__(self):
         super().__init__()
+        self.encoder_dim = 1280  #whisper large v3 1280
+        self.llm_dim = 5120   #Qwen2 7B 3584    Qwen2.5 2048
+        self.query_len = 80   
         from transformers import Blip2QFormerConfig, Blip2QFormerModel
         configuration = Blip2QFormerConfig()
-        configuration.encoder_hidden_size = 1280
+        configuration.encoder_hidden_size = self.encoder_dim
         configuration.num_hidden_layers = 8
 
-        self.query = nn.Parameter(torch.zeros(1, 80, configuration.hidden_size))
+        self.query = nn.Parameter(torch.zeros(1, self.query_len, configuration.hidden_size))
         self.query.data.normal_(mean=0.0, std=1.0)
         self.qformer = Blip2QFormerModel(configuration)
 
-        self.linear = nn.Linear(configuration.hidden_size, 3584)
-        self.norm = nn.LayerNorm(3584, eps=1e-5)
+        self.linear = nn.Linear(configuration.hidden_size, self.llm_dim)
+        self.norm = nn.LayerNorm(self.llm_dim, eps=1e-5)
 
     def forward(self, x, atts):
         query = self.query.expand(x.shape[0], -1, -1)
@@ -39,10 +42,10 @@ class CustomSLM(PreTrainedModel):
     def __init__(self, config, ckpt_path=None):
         super().__init__(config)
         # 例如：
-        self.encoder = WhisperModel.from_pretrained("openai/whisper-large-v3").encoder
-        self.llm = AutoModelForCausalLM.from_pretrained("Qwen/Qwen2-7B")
+        self.encoder = WhisperModel.from_pretrained("/mgData3/zhaozhiyuan/vits/hit/speech/models/whisper-large-v3").encoder
+        self.llm = AutoModelForCausalLM.from_pretrained("/mgData3/zhaozhiyuan/vits/hit/speech/models/Qwen2.5-32B")
         self.encoder_projector = EncoderProjectorQFormer()
-        self.tokenizer = AutoTokenizer.from_pretrained("Qwen/Qwen2-7B")
+        self.tokenizer = AutoTokenizer.from_pretrained("/mgData3/zhaozhiyuan/vits/hit/speech/models/Qwen2.5-32B")
 
         if ckpt_path is not None:
             print("loading model checkpoint from: {}".format(ckpt_path))
@@ -69,25 +72,20 @@ class CustomSLM(PreTrainedModel):
         encoder_outs = self.encoder(audio_mel.permute(0, 2, 1)).last_hidden_state # bs*seq*dim
         encoder_outs = self.encoder_projector(encoder_outs, audio_mel_post_mask)
 
-        input_ids = input_ids[:, 80:]
+        input_ids = input_ids[:, 80:]  #fix audio length 80
         inputs_embeds = self.llm.model.embed_tokens(input_ids)
         inputs_embeds = torch.cat((encoder_outs, inputs_embeds), dim=1)
 
         if kwargs.get("inference_mode", False):
             return inputs_embeds, attention_mask
 
-
         model_outputs = self.llm(inputs_embeds=inputs_embeds, attention_mask=attention_mask, labels=labels,)
-        
         
         with torch.no_grad():
             preds = torch.argmax(input=model_outputs.logits, dim=-1)
             acc = compute_accuracy(preds.detach()[:, :-1], labels.detach()[:, 1:], ignore_label=-100)
-            print(acc)
 
-        return model_outputs
-
-        # return model_outputs, acc
+        return model_outputs,acc
 
     @torch.no_grad()
     def generate(self,
@@ -118,19 +116,19 @@ class CustomSLM(PreTrainedModel):
             return_dict=return_dict,
             **kwargs,
         )
-
+        print(input_ids.shape)
         model_outputs = self.llm.generate(
             inputs_embeds=inputs_embeds,
-            # max_length=kwargs.get("max_length", 200),
-            max_new_tokens=kwargs.get("max_new_tokens", 150),
-            num_beams=kwargs.get("num_beams", 4),
+            max_new_tokens=kwargs.get("max_new_tokens", 400),
+            num_beams=kwargs.get("num_beams", 5),
             do_sample=kwargs.get("do_sample", False),
             min_length=kwargs.get("min_length", 1),
             top_p=kwargs.get("top_p", 1.0),
             repetition_penalty=kwargs.get("repetition_penalty", 1.0),
             length_penalty=kwargs.get("length_penalty", 1.0),
             temperature=kwargs.get("temperature", 1.0),
-            no_repeat_ngram_size=3,
+            no_repeat_ngram_size=4,
+            early_stopping=False,
             attention_mask=attention_mask,
             bos_token_id=self.tokenizer.bos_token_id,
             eos_token_id=self.tokenizer.eos_token_id,

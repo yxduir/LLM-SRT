@@ -215,6 +215,7 @@ def main(kwargs: DictConfig):
     train_dataloader = torch.utils.data.DataLoader(
         dataset_train,
         num_workers=train_config.num_workers_dataloader,
+        prefetch_factor=10,
         pin_memory=True,
         **train_dl_kwargs,
     )
@@ -230,6 +231,7 @@ def main(kwargs: DictConfig):
             dataset_val,
             num_workers=train_config.num_workers_dataloader,
             pin_memory=True,
+            prefetch_factor=10,
             **val_dl_kwargs,
         )
 

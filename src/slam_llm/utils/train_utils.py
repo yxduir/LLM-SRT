@@ -7,6 +7,7 @@ import yaml
 from contextlib import nullcontext
 from pathlib import Path
 from pkg_resources import packaging
+from datetime import timedelta
 
 
 import torch
@@ -171,7 +172,8 @@ def train(model, train_dataloader,eval_dataloader, tokenizer, optimizer, lr_sche
                     eval_ppl, eval_epoch_loss, *rest = evaluation(model, train_config, eval_dataloader, local_rank, tokenizer)
                     eval_epoch_acc = rest[0] if rest else -1
                     checkpoint_start_time = time.perf_counter()
-                    if train_config.save_model and (eval_epoch_loss < best_val_loss):
+                    # if train_config.save_model and (eval_epoch_loss < best_val_loss):
+                    if train_config.save_model:
                         checkpoint_name = f"{train_config.model_name}_epoch_{str(epoch+1)}_step_{step+1}"
                         if train_config.enable_fsdp or train_config.enable_ddp:
                             dist.barrier()
@@ -463,7 +465,8 @@ def check_frozen_layers_peft_model(model):
 
 def setup():
     """Initialize the process group for distributed training"""
-    dist.init_process_group("nccl")
+    timeout = timedelta(minutes=60)
+    dist.init_process_group("nccl", timeout=timeout) # 设置超时
 
 
 def setup_environ_flags(rank):

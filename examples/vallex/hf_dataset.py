@@ -29,13 +29,7 @@ class SpeechDatasetJsonl(torch.utils.data.Dataset):
 
         if split=="val":
             split="validation"
-        
-        self.source = dataset_config.get("source", None)
-
-        data_dir = "/mgData3/zhaozhiyuan/vits/hit/code/SLAM-LLM/data/covost2/"+self.source
-        ds = load_from_disk(data_dir)[split]
-
-
+        ds = load_dataset("yxdu/covost2_en_x",split=split)
         ds = ds.cast_column("audio", Audio(sampling_rate=16000))
         print(ds)
     
@@ -47,6 +41,7 @@ class SpeechDatasetJsonl(torch.utils.data.Dataset):
         self.IGNORE_INDEX = -100  # The default setting in CrossEntropyLoss
         self.prompt = dataset_config.get("prompt", None)
         self.bf16 = dataset_config.get("bf16", True)
+        self.source = dataset_config.get("source", None)
 
         self.answer_template = "{}"
         self.fix_length_audio = dataset_config.get("fix_length_audio", -1)
@@ -68,36 +63,11 @@ class SpeechDatasetJsonl(torch.utils.data.Dataset):
     
     def __getitem__(self, index):
 
-        lang_map = {
-            "de": "deu",  # 德语
-            "en": "eng",  # 英语
-            "fr": "fra",  # 法语
-            "ja": "jpn",  # 日语
-            "zh": "zho",  # 中文（一般表示）
-            "zh-CN": "zho",  # 中文（简体）
-            "es": "spa",  # 西班牙语
-            "id": "ind",  # 印尼语
-            "it": "ita",  # 意大利语
-            "nl": "nld",  # 荷兰语
-            "pt": "por",  # 葡萄牙语
-            "ru": "rus",  # 俄语
-        }
-
-        def convert_lang_code(code):
-            parts = code.split("_")
-            if len(parts) == 2 and parts[0] in lang_map and parts[1] in lang_map:
-                return f"{lang_map[parts[0]]}_{lang_map[parts[1]]}"
-            return code  # 如果不匹配规则，则返回原字符串
-        
-        lang = convert_lang_code(self.source)
-        langs = lang.split("_")
-
         data_dict = self.ds[index]
 
 
-        prompt =  "<|"+langs[0]+"|><|"+langs[1]+"|>"
-
-        target = data_dict["sentence"]+prompt+data_dict["translation"]
+        prompt =  "<|"+self.source+"|>"
+        target = data_dict["en"]+prompt+data_dict[self.source]
         
 
         
@@ -110,7 +80,8 @@ class SpeechDatasetJsonl(torch.utils.data.Dataset):
         audio_raw = torch.tensor(audio_raw, dtype=torch.float32)  
         audio_mel = whisper.log_mel_spectrogram(audio_raw, n_mels=self.mel_size).permute(1, 0)
         
-        
+        if self.bf16:
+            audio_mel = audio_mel.to(torch.bfloat16)
         
         
         if self.fix_length_audio > 0:
@@ -118,15 +89,13 @@ class SpeechDatasetJsonl(torch.utils.data.Dataset):
         
         audio_pseudo = torch.full((audio_length,), -1) # placeholder
 
-        prompt_ids = self.tokenizer.encode(prompt)
-        prompt_length = len(prompt_ids)
+        
 
         if self.inference_mode:
             
-            audio_mel = audio_mel.to(torch.float16)
-            prompt_token = self.tokenizer.encode(prompt)
+            prompt_ids = self.tokenizer.encode(prompt)
 
-            prompt_ids = torch.tensor(prompt_token, dtype=torch.int64)
+            prompt_ids = torch.tensor(prompt_ids, dtype=torch.int64)
             example_ids = torch.cat((audio_pseudo, prompt_ids))  # [audio,prompt]
             example_mask = example_ids.ge(-1)  # [True,True]
 
@@ -137,14 +106,13 @@ class SpeechDatasetJsonl(torch.utils.data.Dataset):
                 "audio_mel":audio_mel,
                 "key":index,
                 "target": target,
-                "prompt":prompt_token,
-                "prompt_length": prompt_length,
+                "prompt":prompt
             }
         
 
 
-        if self.bf16:
-            audio_mel = audio_mel.to(torch.bfloat16)
+        prompt_ids = self.tokenizer.encode(prompt)
+        prompt_length = len(prompt_ids)
 
 
         answer = self.answer_template.format(target)
@@ -173,9 +141,8 @@ class SpeechDatasetJsonl(torch.utils.data.Dataset):
             "attention_mask": example_mask,
             "audio_mel": audio_mel if self.input_type == "mel" else None,
             "audio_length": audio_length,
-            "prompt_length": prompt_length,
         }
-    
+
     def pad(self, sequence, max_length, padding_idx=0):
         if isinstance(sequence, (int, list, tuple)):
             if len(sequence) < max_length:
@@ -197,115 +164,49 @@ class SpeechDatasetJsonl(torch.utils.data.Dataset):
         else:
             raise Exception("Type mismatch during padding!")
         return sequence
-
-    @classmethod
-    def padding(cls, sequence, padding_length, padding_idx=0, padding_side="right"):
-        if isinstance(sequence, (int, list, tuple)):
-            if padding_length >= 0:
-                sequence = sequence + [padding_idx] * padding_length
-            else:
-                sequence = sequence[:padding_length]
-        elif isinstance(sequence, torch.Tensor):
-            if sequence.ndimension() == 2:
-                if padding_length >= 0:
-                    sequence = torch.nn.functional.pad(sequence, (0, padding_length))
-                else:
-                    sequence = sequence[:, :padding_length]
-            else:
-                if padding_length >= 0:
-                    if padding_side == "left":
-                        sequence = torch.cat((torch.full(([padding_length] + list(sequence.size())[1:]), padding_idx), sequence))
-                    else:
-                        sequence = torch.cat((sequence, torch.full(([padding_length] + list(sequence.size())[1:]), padding_idx)))
-                else:
-                    sequence = sequence[:padding_length]
-        elif isinstance(sequence, np.ndarray):
-            if padding_length >= 0:
-                sequence = np.concatenate(
-                    (sequence, np.full((padding_length,) + sequence.shape[1:], padding_idx)))
-            else:
-                sequence = sequence[:padding_length]
-        else:
-            raise Exception("Type mismatch during padding!")
-        return sequence
-
+    
     def collator(self, samples):
-        assert samples is not None 
-        input_prompt_lengths = [s["audio_length"] + s['prompt_length'] for s in samples] #[120, 48, 82, 42]
-        input_answer_lengths = [len(s["input_ids"]) - s["audio_length"] - s['prompt_length'] for s in samples]  #[0, 0, 0, 0]
-
-        input_prompt_max_length = max(input_prompt_lengths)
-        input_answer_max_length = max(input_answer_lengths)
+        assert samples is not None
+        input_ids_max_length = max([s['input_ids'].shape[0] for s in samples])
+        input_ids = torch.stack([self.pad(s['input_ids'], input_ids_max_length, self.tokenizer.pad_token_id)
+                                 for s in samples])
+        attention_mask = torch.stack([self.pad(s['attention_mask'], input_ids_max_length, False)
+                                      for s in samples])
         
-        input_ids = torch.stack([
-            self.padding(
-                self.padding(samples[index]["input_ids"], input_prompt_max_length - input_prompt_lengths[index], self.tokenizer.pad_token_id, padding_side="left"),
-                input_answer_max_length - input_answer_lengths[index], self.tokenizer.pad_token_id
-            ) for index in range(len(samples))
-        ])
 
-        attention_mask = torch.stack([
-            self.padding(
-                self.padding(samples[index]["attention_mask"], input_prompt_max_length - input_prompt_lengths[index], False, padding_side="left"),
-                input_answer_max_length - input_answer_lengths[index], False
-            ) for index in range(len(samples))
-        ])
-
-
-        if self.input_type == "raw":
-            audio_raw_max_length = max([s['audio'].shape[0] for s in samples])
-            audio_raw = torch.stack([self.pad(s['audio'], audio_raw_max_length, 0)
-                                     for s in samples])
-            audio_mask = torch.zeros(len(samples), audio_raw_max_length)
-            for line, sample in enumerate(samples):
-                audio_mask[line, :sample['audio'].shape[0]] = 1
-        elif self.input_type == "mel":
+        if self.input_type == "mel":
             audio_mel_max_length = max([s['audio_mel'].shape[0] for s in samples])
             audio_mel = torch.stack([self.pad(s['audio_mel'], audio_mel_max_length, 0)
                                   for s in samples])
             audio_mel_post_mask = torch.zeros(len(samples), (audio_mel_max_length + 1) // 2) # ad-hoc for whisper for 2x downsample from mel to feats
             for line, sample in enumerate(samples):
                 audio_mel_post_mask[line, :(sample['audio_mel'].shape[0] + 1) // 2] = 1
-    
-        modality_mask = torch.zeros_like(attention_mask)
-        for index in range(len(samples)):
-            padding_left = input_prompt_max_length - input_prompt_lengths[index]
-            modality_mask[index, padding_left:padding_left+samples[index]["audio_length"]] = True
+
 
         if self.inference_mode:
             keys = [s['key'] for s in samples]
             targets = [s['target'] for s in samples]
             prompts = [s['prompt'] for s in samples]
 
+
             return {
                 "input_ids": input_ids,
                 "attention_mask": attention_mask,
-                "audio": audio_raw if self.input_type == "raw" else None,
-                "audio_mask": audio_mask if self.input_type == "raw" else None,
                 "audio_mel": audio_mel if self.input_type == "mel" else None,
                 "audio_mel_post_mask": audio_mel_post_mask if self.input_type == "mel" else None,
-                "modality_mask": modality_mask,
                 "keys": keys,
                 "targets": targets,
-                "prompts": prompts,
+                "prompts":prompts
             }
 
-        labels = torch.stack([
-            self.padding(
-                self.padding(samples[index]['labels'], input_prompt_max_length - input_prompt_lengths[index], self.IGNORE_INDEX, padding_side="left"),
-                input_answer_max_length - input_answer_lengths[index], self.IGNORE_INDEX)
-            for index in range(len(samples))
-        ])
-        
+        labels = torch.stack([self.pad(s['labels'], input_ids_max_length, self.IGNORE_INDEX)
+                              for s in samples])
         return {
             "input_ids": input_ids,
             "labels": labels,
             "attention_mask": attention_mask,
-            "audio": audio_raw if self.input_type == "raw" else None,
-            "audio_mask": audio_mask if self.input_type == "raw" else None,
             "audio_mel": audio_mel if self.input_type == "mel" else None,
             "audio_mel_post_mask": audio_mel_post_mask if self.input_type == "mel" else None,
-            "modality_mask": modality_mask
         }
 
 

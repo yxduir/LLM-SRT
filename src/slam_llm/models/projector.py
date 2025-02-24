@@ -58,13 +58,23 @@ class EncoderProjectorQFormer(nn.Module):
         configuration.encoder_hidden_size = self.encoder_dim
         configuration.num_hidden_layers = config.qformer_layers
 
-        self.query_len = int(config.get("query_len", 64))
+        self.query_len = int(config.get("query_len", 80))
         self.query = nn.Parameter(torch.zeros(1, self.query_len, configuration.hidden_size))
         self.query.data.normal_(mean=0.0, std=1.0)
         self.qformer = Blip2QFormerModel(configuration)
 
-        self.linear = nn.Linear(configuration.hidden_size, self.llm_dim)
-        self.norm = nn.LayerNorm(self.llm_dim, eps=1e-5)
+        # (encoder维度)1280->2048(llm维度)   3B
+        # 1280->5120    32B
+        if self.llm_dim <= 1:
+            self.linear = nn.Linear(configuration.hidden_size, self.llm_dim)
+            self.norm = nn.LayerNorm(self.llm_dim, eps=1e-5)
+        else:
+            self.linear1 = nn.Linear(configuration.hidden_size, 2560)  # 从 768 -> 2560
+            self.relu = nn.ReLU()  # 激活函数
+            self.linear2 = nn.Linear(2560, self.llm_dim)  # 从 2560 -> 5120
+            self.norm = nn.LayerNorm(self.llm_dim, eps=1e-5)  # 最终归一化
+        
+       
 
     def forward(self, x, atts):
         query = self.query.expand(x.shape[0], -1, -1)
@@ -76,6 +86,13 @@ class EncoderProjectorQFormer(nn.Module):
             return_dict=True,
         )
         
-        query_proj = self.norm(self.linear(query_output.last_hidden_state))
+        if self.llm_dim <= 1:
+            query_proj = self.norm(self.linear(query_output.last_hidden_state))
+        else:
+            x = self.linear1(query_output.last_hidden_state)  # 从 1280 -> 2560
+            x = self.relu(x)  # 激活
+            x = self.linear2(x)  # 从 2560 -> 5120
+            query_proj = self.norm(x)  # LayerNorm 归一化
+
         
         return query_proj

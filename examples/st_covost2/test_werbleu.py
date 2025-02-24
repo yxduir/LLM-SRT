@@ -3,7 +3,8 @@ import json
 import argparse
 import re
 import os
-
+os.environ["http_proxy"] = "http://127.0.0.1:7890"
+os.environ["https_proxy"] = "http://127.0.0.1:7890"
 
 def main():
     parser = argparse.ArgumentParser(description='Process JSONL file')
@@ -78,9 +79,9 @@ def main():
     label_str_norm = [label_str_norm[i] for i in range(len(label_str_norm)) if len(label_str_norm[i]) > 0]
 
 
-    wer = 100 * wer.compute(predictions=pred_str_norm, references=label_str_norm)
-    wer_result = {"wer_ortho": wer_ortho, "wer": wer}
-    print(wer_result)
+    # wer = 100 * wer.compute(predictions=pred_str_norm, references=label_str_norm)
+    # wer_result = {"wer_ortho": wer_ortho, "wer": wer}
+    # print(wer_result)
 
 
     print("-"*50)
@@ -98,9 +99,9 @@ def main():
     print(text_lan)
 
     import sacrebleu
-    
+    text_lan = "flores200"
 
-    bleu = sacrebleu.corpus_bleu(response_st,[gt_st],lowercase=True, tokenize=text_lan)
+    bleu = sacrebleu.corpus_bleu(response_st,[gt_st], tokenize=text_lan)
     print("Count:", len(response_st))
     print("BLEU Score:", bleu)
     bleu_score = bleu.score

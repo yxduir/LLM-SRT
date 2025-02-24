@@ -45,7 +45,7 @@ from transformers import  AutoTokenizer,AutoConfig,AutoModel
 import hydra
 from omegaconf import DictConfig, ListConfig, OmegaConf
 
-
+from slam_llm.utils.model_utils import get_custom_model_factory
 
 class InferenceSampler(torch.utils.data.sampler.Sampler):
 
@@ -92,6 +92,31 @@ def Inference(kwargs: DictConfig):
 	OmegaConf.set_struct(kwargs,True)
 
 
+	# Set log
+	if not os.path.exists(os.path.dirname(log_config.log_file)):
+		os.makedirs(os.path.dirname(log_config.log_file), exist_ok=True)
+	logging.basicConfig(
+		level=logging.INFO, 
+		format="%(asctime)s | %(levelname)s | %(name)s | %(message)s",
+		datefmt="%Y-%m-%d %H:%M:%S",
+		filemode='w'
+	)
+
+	logger = logging.getLogger()  
+	logger.setLevel(logging.INFO)
+
+	file_handler = logging.FileHandler(filename=log_config.log_file, mode='w')
+	file_handler.setLevel(logging.INFO)
+	file_formatter = logging.Formatter('[%(asctime)s][%(name)s][%(levelname)s] - %(message)s', datefmt='%Y-%m-%d %H:%M:%S')
+	file_handler.setFormatter(file_formatter)
+
+	logger.handlers[0].setLevel(logging.INFO)
+	console_formatter = logging.Formatter('[%(asctime)s][%(name)s][%(levelname)s] - %(message)s', datefmt='%Y-%m-%d %H:%M:%S')
+	logger.handlers[0].setFormatter(console_formatter) 
+
+	logger.addHandler(file_handler)
+
+
 
 	# Set the seeds for reproducibility
 	torch.cuda.manual_seed(train_config.seed)
@@ -112,19 +137,24 @@ def Inference(kwargs: DictConfig):
 		torch.cuda.set_device(local_rank)
 		clear_gpu_cache(local_rank)
 		setup_environ_flags(rank)
+            
+	if not (train_config.enable_fsdp or train_config.enable_ddp) or rank == 0:
+		logger.info("train_config: {}".format(train_config))
+		logger.info("fsdp_config: {}".format(fsdp_config))
+		logger.info("model_config: {}".format(model_config))
+		logger.info("log_config: {}".format(log_config))
 
-	config = AutoConfig.from_pretrained("Qwen/Qwen2-7B")  # 加载 Qwen2-7B 的配置
-	tokenizer = AutoTokenizer.from_pretrained("Qwen/Qwen2-7B")
-	model = CustomSLM(config,ckpt_path=ckpt_path)     
-	# model = AutoModel.from_pretrained("/home/yxdu/hit/SLAM-LLM/examples/st_covost2/output/step_10/test") 
+
+	model_factory = get_custom_model_factory(model_config, logger)
+	model, tokenizer = model_factory(train_config, model_config, **kwargs)
 			
 
 	device = torch.device("cuda" if torch.cuda.is_available() else "cpu") # FIX(MZY): put the whole model to device.
-	model.to(torch.bfloat16)
-	dataset_config["bf16"]=True
+	model.to(torch.float16)
+	dataset_config["fp16"]=True
 	model.to(device)
 	model.eval()
-	tokenizer.padding_side = 'right'
+	tokenizer.padding_side = 'left'
 
 
 
@@ -143,28 +173,33 @@ def Inference(kwargs: DictConfig):
 			shuffle=False,
             batch_size=train_config.val_batch_size,
 			drop_last=False,
-			prefetch_factor=1000,
-            persistent_workers=True,
+			prefetch_factor=10,
+            persistent_workers=False,
 			collate_fn=dataset_test.collator
         )
-	
 
 	gts = []
 	sources = []
 	rets = []
 
-	source = dataset_config.get("source", None)
 	
 	for step, batch in tqdm(enumerate(test_dataloader), total=len(test_dataloader)):
+
 		for key in batch.keys():
 			batch[key] = batch[key].to(device) if isinstance(batch[key], torch.Tensor) else batch[key]
-		
+
 		model_outputs = model.generate(**batch)
+
+		# print(model_outputs)
 		output_text = model.tokenizer.batch_decode(model_outputs, add_special_tokens=False, skip_special_tokens=True)
 
 		for key, text, target in zip(batch["keys"], output_text, batch["targets"]):	
-			print("Prediction:  ",key,text)
-			print("Ground Truth:",key,target)
+			# print("Prediction:  ",key,text)
+			# print("Ground Truth:",key,target)
+			print(key,text)
+			print(key,target)
+
+			source = "eng"
 
 			rets.append(text)
 			gts.append(target)
