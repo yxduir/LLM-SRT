@@ -26,6 +26,7 @@ class ModelConfig:
     })
     query_len: Optional[str] = None
     qformer_layers: int = 8
+    beam: int = 1
 
 
 
@@ -115,6 +116,7 @@ class DataConfig:
     fp16:bool = True
     source: Optional[str] = None
     mode: Optional[str] = None
+    validnum: int = -1
 
 @dataclass
 class FSDPConfig:

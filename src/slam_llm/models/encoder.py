@@ -23,10 +23,15 @@ class WhisperWrappedEncoder:
             # x = (x + self.positional_embedding).to(x.dtype)
             x = (x + self.positional_embedding[: x.shape[1]]).to(x.dtype)
 
+             # 遍历每个 block
             for block in self.blocks:
-                x = block(x)
+                # 在 block 中调用 layer_norm 之前，将输入转换为 Float32
+                y = x.float()  # 转换为 Float32
+                x = block(y)    # 执行 block 的计算
+                x = x.to(torch.bfloat16)  # 转换回 BFloat16
 
-            x = self.ln_post(x)
+            # 最后的 layer_norm
+            x = self.ln_post(x.float()).to(torch.bfloat16)  # 转换为 Float32 并返回 BFloat16
             return x
 
         if model_config.encoder_path_hf is not None:

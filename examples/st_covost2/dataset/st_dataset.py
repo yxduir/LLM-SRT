@@ -37,17 +37,20 @@ class SpeechDatasetJsonl(torch.utils.data.Dataset):
         self.fix_length_audio = dataset_config.get("fix_length_audio", 80)
         self.inference_mode = dataset_config.get("inference_mode", False)
         self.normalize = dataset_config.get("normalize", False)
+        self.validnum = dataset_config.get("validnum", -1)
         self.input_type = dataset_config.get("input_type", "mel")
         assert self.input_type in ["raw", "mel"], "input_type must be one of [raw, mel]" 
         self.data_dir = os.path.dirname(dataset_config.get("val_data_path"))+"/"
 
-        src_lang = ['zho','eng', 'deu', 'fra', 'spa', 'por', 'ita', 'nld', 'rus', 'ces', 'pol', 'ara', 'fas', 'heb', 'tur', 'jpn', 'kor', 'vie', 'tha', 'ind', 'msa', 'lao', 'mya', 'ceb', 'khm', 'tgl', 'hin', 'ben', 'urd',"yue"]
-        # src_lang = ['zho','eng', 'deu', 'fra', 'rus','jpn']
+        src_lang = ['zho','eng', 'deu', 'fra', 'spa', 'por', 'ita', 'nld', 'rus', 'ces', 'pol', 'ara', 'fas', 'heb', 'tur', 'jpn', 'kor', 'vie', 'tha', 'ind', 'msa', 'lao', 'mya', 'khm', 'tgl', 'hin', 'ben', 'urd']
+        src_lang = ['zho','eng', 'deu', 'fra', 'rus','jpn']
 
         # src_lang = ['eng', 'deu', 'fra', 'spa', 'por', 'ita', 'nld', 'rus', 'jpn', 'kor', 'vie', 'ind','tha',"zho","yue"]
         src_lang = ['eng', 'deu', 'fra', 'spa', 'por', 'ita', 'nld', 'rus', 'jpn', 'kor', 'vie', 'ind','tha',"zho","yue"]
         # src_lang = ['zho']
-        # src_lang = ['eng']
+        src_lang = ['eng',"zho","jpn","kor"]
+        src_lang = ['eng']
+
 
 
 
@@ -58,13 +61,15 @@ class SpeechDatasetJsonl(torch.utils.data.Dataset):
 
         
         # eng_Lant
-        tgt_lang = ['zho','eng', 'deu', 'fra', 'spa', 'por', 'ita', 'nld', 'rus', 'ces', 'pol', 'ara', 'fas', 'heb', 'tur', 'jpn', 'kor', 'vie', 'tha', 'ind', 'msa', 'lao', 'mya', 'ceb', 'khm', 'tgl', 'hin', 'ben', 'urd',"yue"]
+        tgt_lang = ['zho','eng', 'deu', 'fra', 'spa', 'por', 'ita', 'nld', 'rus', 'ces', 'pol', 'ara', 'fas', 'heb', 'tur', 'jpn', 'kor', 'vie', 'tha', 'ind', 'msa', 'lao', 'mya', 'khm', 'tgl', 'hin', 'ben', 'urd']
         # tgt_lang = ["pes","tur","hin","tgl","arb","zsm","ces","ceb"]
+        tgt_lang = ['eng', 'deu', 'fra', 'spa', 'por', 'ita', 'nld', 'rus', 'jpn', 'kor', 'vie', 'ind','tha',"zho","yue"]
+
         tgt_lang = ['eng', 'deu', 'fra', 'spa', 'por', 'ita', 'nld', 'rus', 'jpn', 'kor', 'vie', 'ind','tha',"zho","yue"]
 
         # tgt_lang = ['deu', 'fra', 'rus', 'jpn', "zho"]
 
-        # tgt_lang = ['zho']
+        tgt_lang = ['zho']
 
 
 
@@ -74,7 +79,9 @@ class SpeechDatasetJsonl(torch.utils.data.Dataset):
         # tgt_lang = ["eng"]
 
 
-
+        # 设置随机种子，确保结果可复现
+        random_seed = 42  # 可以替换为任意整数
+        random.seed(random_seed)
 
         
         self.data_list = []
@@ -91,6 +98,8 @@ class SpeechDatasetJsonl(torch.utils.data.Dataset):
                         self.data_list.append(data_dict)
                     elif  data_source.split("_")[-2] in src_lang and data_source.split("_")[-1] in tgt_lang:
                         self.data_list.append(data_dict)
+            # 打乱数据顺序
+            random.shuffle(self.data_list)          
         else:
             with open(dataset_config.get("val_data_path"), encoding='utf-8') as fin:
                 for line in fin:
@@ -102,7 +111,13 @@ class SpeechDatasetJsonl(torch.utils.data.Dataset):
                         self.data_list.append(data_dict)
                     elif  data_source.split("_")[-2] in src_lang and data_source.split("_")[-1] in tgt_lang:
                         self.data_list.append(data_dict)
-                # self.data_list = random.sample(self.data_list, 20000)
+                if self.validnum == -1:
+                    random.shuffle(self.data_list)
+                elif self.validnum == -2:
+                    pass
+                else:
+                    self.data_list = random.sample(self.data_list, self.validnum)
+               
 
 
         # 截取前 1000 条数据
@@ -128,6 +143,11 @@ class SpeechDatasetJsonl(torch.utils.data.Dataset):
 
         if self.mode == "mmt":
             prompt = target.split(prompt)[0]+prompt
+            if self.validnum == -1:
+                target = target.split(prompt)[1]
+        elif self.mode == "asr":
+            prompt = prompt[:7]
+            target = target.split(prompt)[0]
 
         
 
@@ -141,12 +161,12 @@ class SpeechDatasetJsonl(torch.utils.data.Dataset):
 
         key = data_dict.get("key", str(index))
 
-        audio_raw = whisper.load_audio(audio_path)
-        # audio_raw, sr = librosa.load(audio_path, sr=None)  # sr=None ensures we get the original sample rate
-        # # Resample audio to 16000 Hz if the sample rate is different
-        # if sr != 16000:
-        #     audio_raw = librosa.resample(audio_raw, orig_sr=sr, target_sr=16000)
-        #     sr = 16000  # Update the sample rate to 16000
+        # audio_raw = whisper.load_audio(audio_path)
+        audio_raw, sr = librosa.load(audio_path, sr=None)  # sr=None ensures we get the original sample rate
+        # Resample audio to 16000 Hz if the sample rate is different
+        if sr != 16000:
+            audio_raw = librosa.resample(audio_raw, orig_sr=sr, target_sr=16000)
+            sr = 16000  # Update the sample rate to 16000
 
         if self.input_type == "raw":
             audio_raw = torch.from_numpy(audio_raw)
@@ -158,6 +178,8 @@ class SpeechDatasetJsonl(torch.utils.data.Dataset):
             audio_raw = whisper.pad_or_trim(audio_raw)
             # audio_raw = np.concatenate((np.zeros(random.randint(0, 16000)), audio_raw, np.zeros(random.randint(0, 16000)))).astype(audio_raw.dtype)[:16000*30]
             audio_mel = whisper.log_mel_spectrogram(audio_raw, n_mels=self.mel_size).permute(1, 0)
+            # audio_mel = whisper.log_mel_spectrogram(audio_raw, n_mels=self.mel_size)
+
             # audio_length = (audio_mel.shape[0] + 1) // 2  # ad-hoc for whisper for 2x downsample from mel to feats
             # audio_length = audio_length // 5 # ad-hoc for 5x fc downsample
             # audio_length = calculate_output_length_1d(audio_length, 5, 5, 0) # ad-hoc for 5x cov1d downsample
@@ -172,6 +194,7 @@ class SpeechDatasetJsonl(torch.utils.data.Dataset):
 
         if self.inference_mode:
             audio_mel = audio_mel.to(torch.float16)
+
         
             prompt_ids = torch.tensor(prompt_ids, dtype=torch.int64)
             example_ids = torch.cat((audio_pseudo, prompt_ids))  # [audio,prompt]

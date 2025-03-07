@@ -144,13 +144,15 @@ def Inference(kwargs: DictConfig):
 		logger.info("model_config: {}".format(model_config))
 		logger.info("log_config: {}".format(log_config))
 
-
+	beam = model_config["beam"]
 	model_factory = get_custom_model_factory(model_config, logger)
 	model, tokenizer = model_factory(train_config, model_config, **kwargs)
 			
 
 	device = torch.device("cuda" if torch.cuda.is_available() else "cpu") # FIX(MZY): put the whole model to device.
+	# model.to(torch.bfloat16)
 	model.to(torch.float16)
+
 	dataset_config["fp16"]=True
 	model.to(device)
 	model.eval()
@@ -188,7 +190,7 @@ def Inference(kwargs: DictConfig):
 		for key in batch.keys():
 			batch[key] = batch[key].to(device) if isinstance(batch[key], torch.Tensor) else batch[key]
 
-		model_outputs = model.generate(**batch)
+		model_outputs = model.generate(**batch,beam=beam)
 
 		# print(model_outputs)
 		output_text = model.tokenizer.batch_decode(model_outputs, add_special_tokens=False, skip_special_tokens=True)
