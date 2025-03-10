@@ -2,7 +2,7 @@ export TOKENIZERS_PARALLELISM=false
 # export WANDB_MODE=offline
 # export HYDRA_FULL_ERROR=1
 export WANDB_API_KEY=974622cbbd8bb5edfed52d032a939d32dd21f611
-export CUDA_VISIBLE_DEVICES=0,2
+export CUDA_VISIBLE_DEVICES=1,2,3
 if command -v nvidia-smi &> /dev/null; then
     gpu_count=$(nvidia-smi --query-gpu=name --format=csv,noheader | wc -l)
 if [ -n "$CUDA_VISIBLE_DEVICES" ]; then
@@ -15,14 +15,14 @@ current_script=$(readlink -f "$0")
 current_dir=$(dirname "$current_script")
 code=$(realpath "$current_dir/../../../../SLAM-LLM")
 cd ${code}
-source=test
-mode=asr
+source=28lang
+mode=srt
 
 
 # /mgData3/zhaozhiyuan/vits/hit/code/data/qwen/srt-6-12-main-7
-checkpoint_dir=${code}/models/output/qwen2.5-3B-mlp-15-mmt-lora-3
-checkpoint_dir=/mgData3/zhaozhiyuan/vits/hit/code/data/qwen/asr-6lang-7B-4
-output_dir=${code}/models/output/asr-7B-Gemma
+checkpoint_dir=${code}/models/output/asr-7B-mi-28lang-srt-lora
+# checkpoint_dir=/mgData3/zhaozhiyuan/vits/hit/code/data/qwen/asr-6lang-7B-4
+output_dir=${code}/models/output/asr-7B-mi-28lang-srt-lora-2
 
 
 encoder_path_hf=${code}/models/whisper-large-v3
@@ -31,11 +31,15 @@ llm_path=${code}/models/GemmaX2-28-9B-v0.1
 train_data_path=${code}/data/covost2/train_spt_3.jsonl
 val_data_path=${code}/data/covost2/test_spt_3.jsonl
 
-# train_data_path=${code}/data/fleurs/wavs/train_300_30.jsonl
-# val_data_path=${code}/data/fleurs/wavs/test_30_valid.jsonl
+
+# train_data_path=${code}/data/covost2/19/train_new.jsonl
+# val_data_path=${code}/data/covost2/19/test_15.jsonl
+
+train_data_path=${code}/data/fleurs/wavs/train_300_30.jsonl
+val_data_path=${code}/data/fleurs/wavs/test_28_28_valid.jsonl
 
 validnum=-1
-peft=false
+peft=true
 # 根据 peft 的值设置 freeze_llm 的相反值
 if [ "$peft" = "true" ]; then
     freeze_llm="false"
@@ -85,11 +89,11 @@ hydra.run.dir=$output_dir \
 ++train_config.batching_strategy=custom \
 ++train_config.gradient_accumulation_steps=1 \
 ++train_config.warmup_steps=200 \
-++train_config.total_steps=20000 \
-++train_config.lr=1e-4 \
-++train_config.batch_size_training=16 \
-++train_config.val_batch_size=32 \
-++train_config.num_workers_dataloader=16 \
+++train_config.total_steps=200000 \
+++train_config.lr=1e-5 \
+++train_config.batch_size_training=8 \
+++train_config.val_batch_size=16 \
+++train_config.num_workers_dataloader=8 \
 ++train_config.output_dir=$output_dir \
 ++metric=acc \
 ++train_config.use_fp16=false \
@@ -113,7 +117,7 @@ torchrun \
     ++log_config.use_wandb=true \
     ++log_config.wandb_project_name=fleur \
     ++log_config.wandb_exp_name=yxduir \
-    ++train_config.validation_interval=500 \
+    ++train_config.validation_interval=1000 \
     ++log_config.wandb_exp_name=${mode} \
     ++train_config.use_peft=${peft} \
     $hydra_args

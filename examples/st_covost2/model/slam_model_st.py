@@ -393,7 +393,7 @@ class slam_model(nn.Module):
             no_repeat_ngram_size=5,
             early_stopping=True,
             attention_mask=attention_mask,
-            eos_token_id=[151643,151645],
+            eos_token_id=self.tokenizer.eos_token_id,
             bos_token_id=self.tokenizer.eos_token_id,
             pad_token_id=self.tokenizer.pad_token_id,
         )

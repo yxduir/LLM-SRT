@@ -42,14 +42,15 @@ class SpeechDatasetJsonl(torch.utils.data.Dataset):
         assert self.input_type in ["raw", "mel"], "input_type must be one of [raw, mel]" 
         self.data_dir = os.path.dirname(dataset_config.get("val_data_path"))+"/"
 
-        src_lang = ['zho','eng', 'deu', 'fra', 'spa', 'por', 'ita', 'nld', 'rus', 'ces', 'pol', 'ara', 'fas', 'heb', 'tur', 'jpn', 'kor', 'vie', 'tha', 'ind', 'msa', 'lao', 'mya', 'khm', 'tgl', 'hin', 'ben', 'urd']
-        src_lang = ['zho','eng', 'deu', 'fra', 'rus','jpn']
-
+        src_lang = ['ara', 'ben', 'ces', 'deu', 'eng', 'fas', 'fra', 'heb', 'hin', 'ind', 'ita', 'jpn', 'khm', 'kor', 'lao', 'msa', 'mya', 'nld', 'pol', 'por', 'rus', 'spa', 'tha', 'tgl', 'tur', 'urd', 'vie', 'zho']
+        # src_lang = ['zho','eng', 'deu', 'fra', 'rus','jpn']
+        src = self.source.split("_")[-1]
+        src_lang = [src]
         # src_lang = ['eng', 'deu', 'fra', 'spa', 'por', 'ita', 'nld', 'rus', 'jpn', 'kor', 'vie', 'ind','tha',"zho","yue"]
-        src_lang = ['eng', 'deu', 'fra', 'spa', 'por', 'ita', 'nld', 'rus', 'jpn', 'kor', 'vie', 'ind','tha',"zho","yue"]
+        # src_lang = ['eng', 'deu', 'fra', 'spa', 'por', 'ita', 'nld', 'rus', 'jpn', 'kor', 'vie', 'ind','tha',"zho"]
         # src_lang = ['zho']
-        src_lang = ['eng',"zho","jpn","kor"]
-        src_lang = ['eng']
+        # src_lang = ['eng',"zho","jpn","kor"]
+        # src_lang = ['eng']
 
 
 
@@ -61,15 +62,15 @@ class SpeechDatasetJsonl(torch.utils.data.Dataset):
 
         
         # eng_Lant
-        tgt_lang = ['zho','eng', 'deu', 'fra', 'spa', 'por', 'ita', 'nld', 'rus', 'ces', 'pol', 'ara', 'fas', 'heb', 'tur', 'jpn', 'kor', 'vie', 'tha', 'ind', 'msa', 'lao', 'mya', 'khm', 'tgl', 'hin', 'ben', 'urd']
-        # tgt_lang = ["pes","tur","hin","tgl","arb","zsm","ces","ceb"]
-        tgt_lang = ['eng', 'deu', 'fra', 'spa', 'por', 'ita', 'nld', 'rus', 'jpn', 'kor', 'vie', 'ind','tha',"zho","yue"]
+        tgt_lang = ['ara', 'ben', 'ces', 'deu', 'eng', 'fas', 'fra', 'heb', 'hin', 'ind', 'ita', 'jpn', 'khm', 'kor', 'lao', 'msa', 'mya', 'nld', 'pol', 'por', 'rus', 'spa', 'tha', 'tgl', 'tur', 'urd', 'vie', 'zho']
+        # tgt_lang = ["pes","tur","hin","tgl","arb","zsm","ces"]
+        # tgt_lang = ['eng', 'deu', 'fra', 'spa', 'por', 'ita', 'nld', 'rus', 'jpn', 'kor', 'vie', 'ind','tha',"zho","yue"]
 
-        tgt_lang = ['eng', 'deu', 'fra', 'spa', 'por', 'ita', 'nld', 'rus', 'jpn', 'kor', 'vie', 'ind','tha',"zho","yue"]
+        # tgt_lang = ['eng', 'deu', 'fra', 'spa', 'por', 'ita', 'nld', 'rus', 'jpn', 'kor', 'vie', 'ind','tha',"zho","yue"]
 
         # tgt_lang = ['deu', 'fra', 'rus', 'jpn', "zho"]
 
-        tgt_lang = ['zho']
+        # tgt_lang = ['zho']
 
 
 
@@ -113,6 +114,8 @@ class SpeechDatasetJsonl(torch.utils.data.Dataset):
                         self.data_list.append(data_dict)
                 if self.validnum == -1:
                     random.shuffle(self.data_list)
+                    if len(self.data_list)>300:
+                        self.data_list=self.data_list[:300]
                 elif self.validnum == -2:
                     pass
                 else:
@@ -161,12 +164,12 @@ class SpeechDatasetJsonl(torch.utils.data.Dataset):
 
         key = data_dict.get("key", str(index))
 
-        # audio_raw = whisper.load_audio(audio_path)
-        audio_raw, sr = librosa.load(audio_path, sr=None)  # sr=None ensures we get the original sample rate
+        audio_raw = whisper.load_audio(audio_path)
+        # audio_raw, sr = librosa.load(audio_path, sr=None)  # sr=None ensures we get the original sample rate
         # Resample audio to 16000 Hz if the sample rate is different
-        if sr != 16000:
-            audio_raw = librosa.resample(audio_raw, orig_sr=sr, target_sr=16000)
-            sr = 16000  # Update the sample rate to 16000
+        # if sr != 16000:
+        #     audio_raw = librosa.resample(audio_raw, orig_sr=sr, target_sr=16000)
+        #     sr = 16000  # Update the sample rate to 16000
 
         if self.input_type == "raw":
             audio_raw = torch.from_numpy(audio_raw)

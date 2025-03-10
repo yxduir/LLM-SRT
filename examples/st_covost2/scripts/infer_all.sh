@@ -3,7 +3,7 @@ export MASTER_ADDR=localhost
 export MASTER_PORT=12345
 export WANDB_MODE=offline
 export CUDA_VISIBLE_DEVICES=0,5,7
-export CUDA_VISIBLE_DEVICES=0,7
+export CUDA_VISIBLE_DEVICES=0,1,2,3,4
 
 
 
@@ -26,7 +26,7 @@ echo "Code path: ${code}"
 cd ${code}
 source=flores_devtest_beam5
 beam=5
-mode=mmt
+mode=srt
 validnum=-2
 
 peft=true
@@ -38,13 +38,13 @@ else
 fi
 # /mgData3/zhaozhiyuan/vits/hit/code/SLAM-LLM/models/output/asr-3B-encoder-15lang-lora-2
 # /mgData3/zhaozhiyuan/vits/hit/code/data/qwen/asr-Qwen2.5_7B-3
-checkpoint_dir=${code}/models/output/qwen2.5-3B-mlp-15-mmt-lora-3
+checkpoint_dir=${code}/models/output/asr-7B-mi-28lang-srt-lora-2
 # checkpoint_dir=/mgData3/zhaozhiyuan/vits/hit/code/data/qwen/srt-6-12-main-7
 
 output_dir=${code}/models/output/qwen2.5-srt-15lang
 
 encoder_path_hf=${code}/models/whisper-large-v3
-llm_path=${code}/models/Qwen2.5-3B
+llm_path=${code}/models/GemmaX2-28-9B-v0.1
 
 train_data_path=${code}/data/covost2/train_spt_3.jsonl
 val_data_path=${code}/data/covost2/test_spt_3.jsonl
@@ -57,7 +57,7 @@ val_data_path=${code}/data/covost2/test_spt_3.jsonl
 train_data_path=${code}/data/fleurs/wavs/train_300_30.jsonl
 val_data_path=${code}/data/fleurs/wavs/test_30.jsonl
 
-val_data_path=/mgData3/zhaozhiyuan/vits/hit/code/ms-swift/CosyVoice/tts_wav/devtest/devtest.jsonl
+# val_data_path=/mgData3/zhaozhiyuan/vits/hit/code/ms-swift/CosyVoice/tts_wav/devtest/devtest.jsonl
 
 
 max_epoch=$(ls -d ${checkpoint_dir}/asr_epoch_*_step_* | sed -n 's/.*asr_epoch_\([0-9]*\)_step_\([0-9]*\).*/\1/p' | sort -n | tail -1)
@@ -88,7 +88,7 @@ torchrun \
     ++fsdp_config.pure_bf16=true \
     ++model_config.llm_name="Qwen2.5-7B" \
     ++model_config.llm_path=$llm_path \
-    ++model_config.llm_dim=2048 \
+    ++model_config.llm_dim=3584 \
     ++model_config.query_len=80 \
     ++model_config.encoder_name=whisper \
     ++model_config.encoder_projector_ds_rate=5 \
@@ -112,8 +112,8 @@ torchrun \
     ++train_config.freeze_llm=$freeze_llm \
     ++train_config.batching_strategy=custom \
     ++train_config.num_epochs=1 \
-    ++train_config.val_batch_size=8 \
-    ++train_config.num_workers_dataloader=8 \
+    ++train_config.val_batch_size=32 \
+    ++train_config.num_workers_dataloader=16 \
     ++log_config.decode_log=$decode_log \
     ++ckpt_path=$ckpt_name \
     ++train_config.use_peft=${peft} \
