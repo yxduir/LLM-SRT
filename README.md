@@ -1,194 +1,105 @@
-<div align="center">
-    <h1>
-    SLAM-LLM
-    </h1>
-    <p>
-    <b>SLAM-LLM</b> is a deep learning toolkit that allows researchers and
-developers to train custom multimodal large language model (MLLM), focusing on <b>S</b>peech, <b>L</b>anguage, <b>A</b>udio, <b>M</b>usic processing. We provide detailed recipes for training and high-performance checkpoints for inference. <br>
-    </p>
-    <p>
-    <img src="docs/logo.jpg" alt="SLAM-LLM Logo" style="width: 200px; height: 200px;">
-    </p>
-    <p>
-    </p>
-    <a href="https://github.com/ddlBoJack/SLAM-LLM"><img src="https://img.shields.io/badge/Platform-linux-lightgrey" alt="version"></a>
-    <a href="https://github.com/ddlBoJack/SLAM-LLM"><img src="https://img.shields.io/badge/Cuda-11.8+-orange" alt="version"></a>
-    <a href="https://github.com/ddlBoJack/SLAM-LLM"><img src="https://img.shields.io/badge/PyTorch-2.01+-brightgreen" alt="python"></a>
-    <a href="https://github.com/ddlBoJack/SLAM-LLM"><img src="https://img.shields.io/badge/License-MIT-red.svg" alt="mit"></a>
-</div>
+# LLM-SRT
 
-# Table of Contents
-1. [News](#news)
-2. [Installation](#installation)
-3. [Usage](#usage)
-    - [List of Recipes](#list-of-recipes)
-    - [Configuration Priority](#configuration-priority)
-4. [Features](#features)
-5. [Acknowledge](#acknowledge)
-6. [Citation](#citation)
+## Model Stracture
+<img src="examples/st_covost2/image/framework.jpg" alt="Photo" style="width:75%;">
 
-# News
-- [Update Nov. 17, 2024] Recipes for [LLM-Based Contextual ASR](examples/contextual_asr/README.md) have been supported. 
-- [Update Nov. 5, 2024] Recipes for [speech emotion captioning (SEC)](examples/sec_emotioncaps/README.md) with [emotion2vec](https://github.com/ddlBoJack/emotion2vec) as the encoder has been supported.
-- [Update Oct. 12, 2024] Recipes for [SLAM-AAC](examples/slam_aac/README.md) with [EAT](https://github.com/cwx-worst-one/EAT) as the encoder have been supported. 
-- [Update Sep. 28, 2024] Recipes for [CoT-ST](examples/st_covost2/README.md) have been supported. 
-- [Update Sep. 25, 2024] Recipes for [DRCap](examples/drcap_zeroshot_aac/README.md) have been supported. 
-- [Update Jun. 12, 2024] Recipes for [MaLa-ASR](examples/mala_asr_slidespeech/README.md) have been supported. 
-- **[CALL FOR EXAMPLE]** We sincerely invite developers and researchers to develop new applications, conduct academic research based on SLAM-LLM, and pull request your examples! We also acknowledge engineering PR (such as improving and speeding up multi-node training). 
-- [Update May. 22, 2024] Please join [slack](https://join.slack.com/t/slam-llm/shared_invite/zt-2mc0pkhhs-5jjOi8Cwc8R1Xc8IQmykDA) or [WeChat group](./docs/Wechat.jpg). We will sync our updates and Q&A here. 
-- [Update May. 21, 2024] Recipes for [Spatial Audio Understanding](examples/seld_spatialsoundqa/README.md) have been supported. 
-- [Update May. 20, 2024] Recipes for [music caption (MC)](examples/mc_musiccaps/README.md) have been supported. 
-- [Update May. 8, 2024] Recipes for [visual speech recognition (VSR)](examples/vsr_LRS3/README.md) have been supported. 
-- [Update May. 4, 2024] Recipes for [zero-shot text-to-speech (TTS)](examples/vallex/README.md) have been supported. 
-- [Update Apr. 28, 2024] Recipes for [automated audio captioning (AAC)](examples/aac_audiocaps/README.md) have been supported. 
-- [Update Mar. 31, 2024] Recipes for [automatic speech recognition (ASR)](examples/asr_librispeech/README.md) have been supported. 
 
-# Installation
-```bash
-git clone https://github.com/huggingface/transformers.git
-cd transformers
-git checkout tags/v4.35.2
+## Multitask 
+<img src="examples/st_covost2/image/prompt.png" alt="Photo" style="width:50%;">
+
+
+## Installation
+```
+conda create -n llm-srt python=3.10
+conda activate llm-srt
+
+git clone https://github.com/yxduir/LLM-SRT
+cd LLM-SRT
+
 pip install -e .
-cd ..
-git clone https://github.com/huggingface/peft.git
-cd peft
-git checkout tags/v0.6.0
-pip install -e .
-cd ..
-pip install torch==2.0.1 torchvision==0.15.2 torchaudio==2.0.2 --index-url https://download.pytorch.org/whl/cu118
-git clone https://github.com/ddlBoJack/SLAM-LLM.git
-cd SLAM-LLM
-pip install  -e .
+sudo apt install ffmpeg
+pip install -U openai-whisper
+pip install wandb
+pip install soundfile
+pip install evaluate
+pip install transformers
+pip install datasets
+pip install sacrebleu
+pip install jiwer
+pip install librosa
+pip install torch==2.4.0
+pip install torchaudio==2.4.0
+pip install torchvision==0.19.0
 ```
 
-For some examples, you may need to use `fairseq`, the command line is as follows:
+## Download Model 
+We only train the q-former projector in this recipe.
+Encoder | Adapter | LLM 
+|---|---|---
+[whisper-large-v3](https://huggingface.co/openai/whisper-large-v3) | [q-former+mlp](https://huggingface.co/yxdu/llm-srt) | [Qwen2.5-3B](https://huggingface.co/Qwen/Qwen2.5-3B) or [GemmaX2-9B](https://huggingface.co/ModelSpace/GemmaX2-28-9B-v0.1)
 ```
-# you need to install fairseq before SLAM-LLM
-git clone https://github.com/pytorch/fairseq
-cd fairseq
-pip install --editable ./
-```
-We also provide a docker image for convenience:
-```shell
-# build docker image
-docker build -t slam-llm:latest .
+mkdir models
+cd models/
 
-# run docker image with gpu
-docker run -it --gpus all --name slam --shm-size=256g slam-llm:latest /bin/bash
-```
-# Usage
-## List of Recipes
-We provide reference implementations of various LLM-based speech, audio, and music tasks: 
-- **Speech Task**
-    - Automatic Speech Recognition (ASR)
-        - [SLAM-ASR](examples/asr_librispeech/README.md)
-    
-    - Contextual Automatic Speech Recognition (CASR)
-        - [ Mala-ASR](examples/mala_asr_slidespeech/README.md)
-        - [LLM-Based Contextual ASR](examples/contextual_asr/README.md)
-    
-    - [Visual Speech Recognition (VSR)](examples/vsr_LRS3/README.md) 
-    - Speech-to-Text Translation (S2TT)
-        - [CoT-ST](examples/st_covost2/README.md)
-    
-    - Text-to-Speech (TTS)
-        - [VALL-E-X](examples/vallex/README.md)
-    - [Speech Emotion Captioning (SEC)](examples/sec_emotioncaps/README.md)
-    
-- **Audio Task**
-    - [Automated Audio Captioning (AAC)](examples/aac_audiocaps/README.md)
-      - [SLAM-AAC](examples/slam_aac/README.md)
-      - [DRCap](examples/drcap_zeroshot_aac/README.md)
-    - Spatial Audio Understanding
-      - [BAT](examples/seld_spatialsoundqa/README.md)
-- **Music Task**
-    - [Music Caption (MC)](examples/mc_musiccaps/README.md)
-
-## Configuration Priority
-We provide hierarchical configuration inheritance relationships as follows:
-```
-command-line (shell file) > Hydra configuration (yaml file) > dataclass configuration (Python file)
-```
-
-# Features
-- Easily extend to new models and tasks.
-- Detailed recipes for training and high-performance checkpoints for inference.
-- Mixed precision training which trains faster with less GPU memory on NVIDIA tensor cores. 
-- Multi-GPU training with data and model parallel, supporting [DDP](https://pytorch.org/tutorials/intermediate/ddp_tutorial.html), [FSDP](https://pytorch.org/tutorials/intermediate/FSDP_tutorial.html) and [deepspeed](https://github.com/microsoft/DeepSpeed) (still need to be improved).  
-- Flexible configuration based on [Hydra](https://github.com/facebookresearch/hydra) and [dataclass](https://docs.python.org/3/library/dataclasses.html) allowing a combination of code, command-line and file based configuration. 
-
-# Acknowledge
-- We borrow code from [Llama-Recipes](https://github.com/meta-llama/llama-recipes) for the training process. 
-- We borrow code from [Fairseq](https://github.com/facebookresearch/fairseq) for deepspeed configuration. 
-- We thank the contributors for providing diverse recipes. 
-
-# Citation
-
-## Speech Task
-
-SLAM-ASR:
-```
-@article{ma2024embarrassingly,
-  title={An Embarrassingly Simple Approach for LLM with Strong ASR Capacity},
-  author={Ma, Ziyang and Yang, Guanrou and Yang, Yifan and Gao, Zhifu and Wang, Jiaming and Du, Zhihao and Yu, Fan and Chen, Qian and Zheng, Siqi and Zhang, Shiliang and others},
-  journal={arXiv preprint arXiv:2402.08846},
-  year={2024}
-}
-```
-Mala-ASR:
-```
-@article{yang2024mala,
-  title={MaLa-ASR: Multimedia-Assisted LLM-Based ASR},
-  author={Yang, Guanrou and Ma, Ziyang and Yu, Fan and Gao, Zhifu and Zhang, Shiliang and Chen, Xie},
-  journal={Proc. INTERSPEECH},
-  year={2024}
-}
-```
-LLM-Based Contextual ASR:
-```
-@article{yang2024ctc,
-  title={CTC-Assisted LLM-Based Contextual ASR},
-  author={Yang, Guanrou and Ma, Ziyang and Gao, Zhifu and Zhang, Shiliang and Chen, Xie},
-  journal={Proc. SLT},
-  year={2024}
-}
-```
-CoT-ST:
-```
-@article{du2024cot,
-  title={CoT-ST: Enhancing LLM-based Speech Translation with Multimodal Chain-of-Thought},
-  author={Du, Yexing and Ma, Ziyang and Yang, Yifan and Deng, Keqi and Chen, Xie and Yang, Bo and Xiang, Yang and Liu, Ming and Qin, Bing},
-  journal={arXiv preprint arXiv:2409.19510},
-  year={2024}
-}
+git lfs clone https://huggingface.co/yxdu/llm-srt
+git lfs clone https://huggingface.co/openai/whisper-large-v3
+# for 3B model (support 15 languages)
+git lfs clone https://huggingface.co/Qwen/Qwen2.5-3B
+# for 9B model (support 27 languages)
+git lfs clone https://huggingface.co/ModelSpace/GemmaX2-28-9B-v0.1
 ```
 
 
-## Audio Task
-SLAM-AAC:
+
+
+## Infer Demo
+It is recommended to run on a single GPU for the first execution. Later, remove CUDA_VISIBLE_DEVICES=0, and it will automatically utilize all GPUs.
+
+This demo will automatically download the model and dataset from Hugging Face, totaling approximately 100GB. Each card requires 128GB of RAM and 24GB of GPU memory.
+
 ```
-@article{chen2024slam,
-  title={SLAM-AAC: Enhancing Audio Captioning with Paraphrasing Augmentation and CLAP-Refine through LLMs},
-  author={Chen, Wenxi and Ma, Ziyang and Li, Xiquan and Xu, Xuenan and Liang, Yuzhe and Zheng, Zhisheng and Yu, Kai and Chen, Xie},
-  journal={arXiv preprint arXiv:2410.09503},
-  year={2024}
-}
+CUDA_VISIBLE_DEVICES=0 bash examples/st_covost2/scripts/infer_enzh.sh zh
 ```
-DRCap:
+
+## Dataset
+You need to download this dataset.
 ```
-@article{li2024drcap,
-  title={DRCap: Decoding CLAP Latents with Retrieval-augmented Generation for Zero-shot Audio Captioning},
-  author={Li, Xiquan and Chen, Wenxi and Ma, Ziyang and Xu, Xuenan and Liang, Yuzhe and Zheng, Zhisheng and Kong, Qiuqiang and Chen, Xie},
-  journal={arXiv preprint arXiv:2410.09472},
-  year={2024}
-}
+Common Voice 19
+Fleurs
 ```
-BAT:
+
+
+
+## Data preparation
+You need to prepare the data jsonl in this format.  
+| audio      | source           | prompt                     | gt            |
+|------------|------------------|----------------------------|---------------|
+| audio_path | `{dataset}_{src}_{tgt}` | `<\|{src}\|><\|{tgt}\|>`| `transcription{prompt}translation` |
 ```
-@article{zheng2024bat,
-  title={BAT: Learning to Reason about Spatial Sounds with Large Language Models},
-  author={Zheng, Zhisheng and Peng, Puyuan and Ma, Ziyang and Chen, Xie and Choi, Eunsol and Harwath, David},
-  journal={Proc. ICML},
-  year={2024}
+{"audio": "eng/test/139.wav", "source": "fleurs_eng_zho", "prompt": "<|eng|><|zho|>", "gt": "They have feet with scales and claws, they lay eggs, and they walk on their two back legs like a T-Rex.<|eng|><|zho|>它们脚上有鳞片和爪子，会产卵，还像霸王龙一样用两条后腿走路。"}
+{"audio": "deu/test/0.wav", "source": "fleurs_deu_ara", "prompt": "<|deu|><|ara|>", "gt": "Für die besten Aussichten auf Hongkong sollten Sie die Insel verlassen und zum gegenüberliegenden Ufer von Kowloon fahren.<|deu|><|ara|>لكي تحظى بأفضل المشاهد لهونج كونج، غادر الجزيرة واتجه إلى واجهة كولون البحرية في الجهة المقابلة."}
+{"audio": "jpn/test/485.wav", "source": "fleurs_jpn_ita", "prompt": "<|jpn|><|ita|>", "gt": "これらの結晶の組成は、赤外分光法（FTIR）で比較すると、患部のペットの尿中に見られるものと一致します。<|jpn|><|ita|>Al confronto mediante spettroscopia infrarossa (FT-IR), la composizione di questi cristalli corrisponde a quella individuata nell'urina degli animali da compagnia che ne sono colpiti."}
+```
+## Train and Inference
+Here, we have designed a three-step training process, where each training session uses the checkpoint obtained from the previous training session.
+```
+#train
+bash examples/st_covost2/scripts/all.sh
+
+
+#infer
+bash examples/st_covost2/scripts/infer_all.sh
+bash examples/st_covost2/scripts/infer_hf.sh
+```
+
+
+##  Citation
+You can refer to the paper for more results. 
+```
+@article{du2025speech2text,  
+  title     = {Making LLMs Better Many-to-Many Speech-to-Text Translators with Curriculum Learning},
+  author    = {Du, Yexing and Pan, Youcheng and Ma, Ziyang and Yang, Bo and Yang, Yifang and Deng, Keqi and Chen, Xie and Xiang, Yang and Liu, Ming and Qin, Bing},
+  booktitle = {Proceedings of the 63rd Annual Meeting of the Association for Computational Linguistics (ACL 2025)},
+  year      = {2025},
 }
 ```

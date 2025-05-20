@@ -10,7 +10,6 @@ if [ -n "$CUDA_VISIBLE_DEVICES" ]; then
 fi
 
 echo "GPU number: $gpu_count"
-
 current_script=$(readlink -f "$0")
 current_dir=$(dirname "$current_script")
 code=$(realpath "$current_dir/../../../../SLAM-LLM")
@@ -42,12 +41,10 @@ val_data_path=${code}/data/fleurs/wavs/validation.jsonl
 max_epoch=$(ls -d ${checkpoint_dir}/asr_epoch_*_step_* | sed -n 's/.*asr_epoch_\([0-9]*\)_step_\([0-9]*\).*/\1/p' | sort -n | tail -1)
 max_step=$(ls -d ${checkpoint_dir}/asr_epoch_${max_epoch}_step_* | sed -n 's/.*asr_epoch_[0-9]*_step_\([0-9]*\).*/\1/p' | sort -n | tail -1)
 
-# 构建最终的路径
 final_path="${checkpoint_dir}/asr_epoch_${max_epoch}_step_${max_step}"
 ckpt_name=$final_path/model.pt
+echo "find .pt file: $ckpt_name"
 
-# 打印找到的 ckpt 文件
-echo "找到的最新 .pt 文件为: $ckpt_name"
 
 
 

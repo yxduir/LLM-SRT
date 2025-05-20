@@ -336,7 +336,7 @@ class slam_model(nn.Module):
         if kwargs.get("inference_mode", False):
             return inputs_embeds, attention_mask
 
-        # print(inputs_embeds.shape)
+        print(inputs_embeds.shape)
         model_outputs = self.llm(inputs_embeds=inputs_embeds, attention_mask=attention_mask, labels=labels,)
         acc = -1
         if self.metric:
