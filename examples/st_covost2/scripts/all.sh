@@ -14,7 +14,7 @@ current_script=$(readlink -f "$0")
 current_dir=$(dirname "$current_script")
 code=$(realpath "$current_dir/../../../../SLAM-LLM")
 cd ${code}
-source=covost2
+source=fleurs
 mode=mmt
 validnum=-1
 peft=true

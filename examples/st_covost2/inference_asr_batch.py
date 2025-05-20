@@ -199,8 +199,8 @@ def Inference(kwargs: DictConfig):
 		for key, audio_path ,prompt,text, target in zip(batch["keys"],batch["audio_paths"],batch["prompts"], output_text, batch["targets"]):	
 			# print("Prediction:  ",key,text)
 			# print("Ground Truth:",key,target)
-			print(key,text)
-			print(key,target)
+			print(key,"pred: ",text)
+			print(key,"gold: ",target)
 
 			source = "eng"
 
