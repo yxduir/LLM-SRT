@@ -53,19 +53,18 @@ git lfs clone https://huggingface.co/ModelSpace/GemmaX2-28-9B-v0.1
 
 
 ## Infer Demo
-It is recommended to run on a single GPU for the first execution. Later, remove CUDA_VISIBLE_DEVICES=0, and it will automatically utilize all GPUs.
-
-This demo will automatically download the model and dataset from Hugging Face, totaling approximately 100GB. Each card requires 128GB of RAM and 24GB of GPU memory.
 
 ```
-CUDA_VISIBLE_DEVICES=0 bash examples/st_covost2/scripts/infer_enzh.sh zh
+Our inference script only supports multi-GPU. This is an automatic inference script for the fleurs dataset from English (eng) to Chinese (zho).
+CUDA_VISIBLE_DEVICES=0,1 bash examples/st_covost2/scripts/infer_hf.sh
 ```
 
-## Dataset
-You need to download this dataset.
+## Train Dataset
+If you want to train your own model, you can download the following datasets.
 ```
-Common Voice 19
-Fleurs
+[Common Voice](https://commonvoice.mozilla.org/en/datasets)
+
+[Fleurs](https://huggingface.co/datasets/google/fleurs)
 ```
 
 
@@ -81,7 +80,8 @@ You need to prepare the data jsonl in this format.
 {"audio": "jpn/test/485.wav", "source": "fleurs_jpn_ita", "prompt": "<|jpn|><|ita|>", "gt": "これらの結晶の組成は、赤外分光法（FTIR）で比較すると、患部のペットの尿中に見られるものと一致します。<|jpn|><|ita|>Al confronto mediante spettroscopia infrarossa (FT-IR), la composizione di questi cristalli corrisponde a quella individuata nell'urina degli animali da compagnia che ne sono colpiti."}
 ```
 ## Train and Inference
-Here, we have designed a three-step training process, where each training session uses the checkpoint obtained from the previous training session.
+You can use the following scripts to perform training and inference separately. 
+For all.sh, you can modify the training task based on the 'mode' keyword: asr, smt, srt.
 ```
 #train
 bash examples/st_covost2/scripts/all.sh
@@ -90,6 +90,14 @@ bash examples/st_covost2/scripts/all.sh
 #infer
 bash examples/st_covost2/scripts/infer_all.sh
 bash examples/st_covost2/scripts/infer_hf.sh
+```
+
+
+## Evaluation
+
+```
+cd evaluation
+python test_metric.py
 ```
 
 

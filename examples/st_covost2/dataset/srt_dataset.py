@@ -155,7 +155,7 @@ class SpeechDatasetJsonl(torch.utils.data.Dataset):
         target = data_dict.get("gt")
         source = data_dict.get("source")
 
-        if self.mode == "mmt":
+        if self.mode == "smt":
             prompt = target.split(prompt)[0]+prompt
             if self.validnum ==-1:
                 target = target.split(prompt)[1]

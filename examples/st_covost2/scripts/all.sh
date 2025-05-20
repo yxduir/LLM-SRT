@@ -15,7 +15,7 @@ current_dir=$(dirname "$current_script")
 code=$(realpath "$current_dir/../../../../SLAM-LLM")
 cd ${code}
 source=fleurs
-mode=mmt
+mode=asr
 validnum=-1
 peft=true
 

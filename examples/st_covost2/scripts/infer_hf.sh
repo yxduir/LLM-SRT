@@ -2,7 +2,7 @@ export MASTER_ADDR=localhost
 # export TOKENIZERS_PARALLELISM=false
 export MASTER_PORT=12345
 export WANDB_MODE=offline
-export CUDA_VISIBLE_DEVICES=1,2,3,4
+# export CUDA_VISIBLE_DEVICES=1,2,3,4
 if [ -n "$CUDA_VISIBLE_DEVICES" ]; then
     gpu_count=$(echo "$CUDA_VISIBLE_DEVICES" | awk -F',' '{print NF}')
 elif command -v nvidia-smi &> /dev/null; then
