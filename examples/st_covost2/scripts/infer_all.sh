@@ -1,13 +1,13 @@
 export MASTER_ADDR=localhost
 # export TOKENIZERS_PARALLELISM=false
-export MASTER_PORT=12345
+export MASTER_PORT=12348
 export WANDB_MODE=offline
 export CUDA_VISIBLE_DEVICES=0,5,7
-export CUDA_VISIBLE_DEVICES=0,1,2,3,4
+export CUDA_VISIBLE_DEVICES=1,2,4,5
 
 
 
-# 设置 GPU 数量
+#  GPU num
 if [ -n "$CUDA_VISIBLE_DEVICES" ]; then
     gpu_count=$(echo "$CUDA_VISIBLE_DEVICES" | awk -F',' '{print NF}')
 elif command -v nvidia-smi &> /dev/null; then
@@ -18,19 +18,18 @@ fi
 
 echo "GPU number: $gpu_count"
 
-# 获取脚本路径
+# get the current script's directory
 current_script=$(readlink -f "$0")
 current_dir=$(dirname "$current_script")
 code=$(realpath "$current_dir/../../../../SLAM-LLM")
 echo "Code path: ${code}"
 cd ${code}
-source=flores_devtest_beam5
+source=wmt24_all
 beam=5
-mode=srt
+mode=mmt
 validnum=-2
 
 peft=true
-# 根据 peft 的值设置 freeze_llm 的相反值
 if [ "$peft" = "true" ]; then
     freeze_llm="false"
 else
@@ -38,27 +37,46 @@ else
 fi
 # /mgData3/zhaozhiyuan/vits/hit/code/SLAM-LLM/models/output/asr-3B-encoder-15lang-lora-2
 # /mgData3/zhaozhiyuan/vits/hit/code/data/qwen/asr-Qwen2.5_7B-3
-checkpoint_dir=${code}/models/output/asr-7B-mi-28lang-srt-lora-2
-# checkpoint_dir=/mgData3/zhaozhiyuan/vits/hit/code/data/qwen/srt-6-12-main-7
+
+
+# checkpoint_dir=${code}/models/output/asr-7B-mi-28lang-mmt-multi30k
+checkpoint_dir=${code}/models/output/asr-7B-mi-28lang-mmt-lora-312
+
 
 output_dir=${code}/models/output/qwen2.5-srt-15lang
 
-encoder_path_hf=${code}/models/whisper-large-v3
-llm_path=${code}/models/GemmaX2-28-9B-v0.1
+encoder_path_hf=/data_a100/models/whisper-large-v3
+llm_path=/data_a100/models/GemmaX2-28-9B-v0.1
 
 train_data_path=${code}/data/covost2/train_spt_3.jsonl
-val_data_path=${code}/data/covost2/test_spt_3.jsonl
+val_data_path=${code}/data/tts_mul30k/multi30k_ende_test.jsonl
+val_data_path=${code}/data/covost2/tts_en_test.jsonl
+
+# train_data_path=${code}/data/tts_mul30k/train.jsonl
+# val_data_path=${code}/data/tts_mul30k/test_2016_flickr.jsonl
+
+# val_data_path=${code}/data/tts_mul30k/test_2017_flickr.jsonl
+val_data_path=${code}/data/tts_mul30k/test_2017_mscoco.jsonl
+val_data_path=${code}/data/tts_wmt24/wmt24.jsonl
+
+
+
+# 获取 val_data_path 的目录路径和基本名称（不含扩展名）
+val_data_dir=$(dirname "${val_data_path}")
+val_data_basename=$(basename "${val_data_path}" .jsonl)
+# 设置 decode_log 文件路径
+decode_log="${val_data_dir}/${val_data_basename}_st.jsonl"
 
 # train_data_path=${code}/data/fleurs/wavs/mmt_train_300_30.jsonl
 # val_data_path=${code}/data/fleurs/wavs/test_30.jsonl
 # val_data_path=${code}/data/europarl/v1.1/test.jsonl
 # /mgData3/zhaozhiyuan/vits/hit/code/SLAM-LLM/data/covost2/test_spt_3.jsonl
 
-train_data_path=${code}/data/fleurs/wavs/train_300_30.jsonl
-val_data_path=${code}/data/fleurs/wavs/test_30.jsonl
+# train_data_path=${code}/data/fleurs/wavs/train_300_30.jsonl
+# val_data_path=${code}/data/fleurs/wavs/test_30.jsonl
 
-# val_data_path=/mgData3/zhaozhiyuan/vits/hit/code/ms-swift/CosyVoice/tts_wav/devtest/devtest.jsonl
-
+# val_data_path=/mgData3/zhaozhiyuan/vits/hit/code/SLAM-LLM/data/tts_wav/devtest/devtest.jsonl
+# val_data_path=/mgData3/zhaozhiyuan/vits/hit/code/SLAM-LLM/data/tts_wmt24/wmt24.jsonl
 
 max_epoch=$(ls -d ${checkpoint_dir}/asr_epoch_*_step_* | sed -n 's/.*asr_epoch_\([0-9]*\)_step_\([0-9]*\).*/\1/p' | sort -n | tail -1)
 max_step=$(ls -d ${checkpoint_dir}/asr_epoch_${max_epoch}_step_* | sed -n 's/.*asr_epoch_[0-9]*_step_\([0-9]*\).*/\1/p' | sort -n | tail -1)
@@ -71,7 +89,7 @@ ckpt_name=$final_path/model.pt
 # 打印找到的 ckpt 文件
 echo "找到的最新 .pt 文件为: $ckpt_name"
 
-decode_log=${final_path}/${source}.jsonl
+
 
 echo "Decode log saved to: ${decode_log}"
 
@@ -79,7 +97,7 @@ echo "Decode log saved to: ${decode_log}"
 torchrun \
     --nnodes 1 \
     --nproc_per_node ${gpu_count} \
-    --master_port=29503 \
+    --master_port=29508 \
     ${code}/examples/st_covost2/inference_asr_batch.py \
     --config-path "conf" \
     --config-name "prompt.yaml" \
@@ -112,8 +130,8 @@ torchrun \
     ++train_config.freeze_llm=$freeze_llm \
     ++train_config.batching_strategy=custom \
     ++train_config.num_epochs=1 \
-    ++train_config.val_batch_size=32 \
-    ++train_config.num_workers_dataloader=16 \
+    ++train_config.val_batch_size=16 \
+    ++train_config.num_workers_dataloader=8 \
     ++log_config.decode_log=$decode_log \
     ++ckpt_path=$ckpt_name \
     ++train_config.use_peft=${peft} \

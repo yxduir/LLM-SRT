@@ -24,33 +24,35 @@ class SpeechDatasetJsonl(torch.utils.data.Dataset):
         super().__init__()
         self.dataset_config = dataset_config
         self.tokenizer = tokenizer
-        self.mode = dataset_config.get("mode", None)
+        self.mode = dataset_config.get("mode", "srt")
         
         self.IGNORE_INDEX = -100  # The default setting in CrossEntropyLoss
-        self.prompt = dataset_config.get("prompt", None)
+        self.prompt = dataset_config.get("prompt", "")
         self.bf16 = dataset_config.get("bf16", True)
         self.fp16 = dataset_config.get("fp16", False)
         self.mel_size = dataset_config.get("mel_size", 128) # 80 for whisper large v1 and v2, 128 for large v3
-        self.source = dataset_config.get("source", None)
+        self.source = dataset_config.get("source", "eng")
 
         self.answer_template = "{}"
         self.fix_length_audio = dataset_config.get("fix_length_audio", 80)
         self.inference_mode = dataset_config.get("inference_mode", False)
         self.normalize = dataset_config.get("normalize", False)
-        self.validnum = dataset_config.get("validnum", -1)
+        self.validnum = dataset_config.get("validnum", -2)
         self.input_type = dataset_config.get("input_type", "mel")
         assert self.input_type in ["raw", "mel"], "input_type must be one of [raw, mel]" 
         self.data_dir = os.path.dirname(dataset_config.get("val_data_path"))+"/"
+        print(self.data_dir)
 
         src_lang = ['ara', 'ben', 'ces', 'deu', 'eng', 'fas', 'fra', 'heb', 'hin', 'ind', 'ita', 'jpn', 'khm', 'kor', 'lao', 'msa', 'mya', 'nld', 'pol', 'por', 'rus', 'spa', 'tha', 'tgl', 'tur', 'urd', 'vie', 'zho']
-        # src_lang = ['zho','eng', 'deu', 'fra', 'rus','jpn']
-        src = self.source.split("_")[-1]
-        src_lang = [src]
+        # src = self.source.split("_")[-1]
+        # src_lang = [src]
         # src_lang = ['eng', 'deu', 'fra', 'spa', 'por', 'ita', 'nld', 'rus', 'jpn', 'kor', 'vie', 'ind','tha',"zho","yue"]
         # src_lang = ['eng', 'deu', 'fra', 'spa', 'por', 'ita', 'nld', 'rus', 'jpn', 'kor', 'vie', 'ind','tha',"zho"]
         # src_lang = ['zho']
         # src_lang = ['eng',"zho","jpn","kor"]
+        # src_lang = ['spa']
         # src_lang = ['eng']
+
 
 
 
@@ -68,7 +70,7 @@ class SpeechDatasetJsonl(torch.utils.data.Dataset):
 
         # tgt_lang = ['eng', 'deu', 'fra', 'spa', 'por', 'ita', 'nld', 'rus', 'jpn', 'kor', 'vie', 'ind','tha',"zho","yue"]
 
-        # tgt_lang = ['deu', 'fra', 'rus', 'jpn', "zho"]
+        # tgt_lang = ['deu', 'fra', 'rus', 'jpn', "zho", "eng"]
 
         # tgt_lang = ['zho']
 
@@ -114,8 +116,8 @@ class SpeechDatasetJsonl(torch.utils.data.Dataset):
                         self.data_list.append(data_dict)
                 if self.validnum == -1:
                     random.shuffle(self.data_list)
-                    if len(self.data_list)>300:
-                        self.data_list=self.data_list[:300]
+                    if len(self.data_list)>50000:
+                        self.data_list=self.data_list[:50000]
                 elif self.validnum == -2:
                     pass
                 else:
@@ -135,7 +137,10 @@ class SpeechDatasetJsonl(torch.utils.data.Dataset):
         data_dict = self.data_list[index]
 
         audio_path = data_dict.get("audio")
-        audio_path = self.data_dir+audio_path
+        if not audio_path.startswith('/'):
+            audio_path = self.data_dir + audio_path
+        
+
 
 
         
@@ -146,19 +151,13 @@ class SpeechDatasetJsonl(torch.utils.data.Dataset):
 
         if self.mode == "mmt":
             prompt = target.split(prompt)[0]+prompt
-            if self.validnum == -1:
-                target = target.split(prompt)[1]
         elif self.mode == "asr":
             prompt = prompt[:7]
             target = target.split(prompt)[0]
-
-        
-
-
         
         if not self.printed:  # 如果没有打印过，则打印一次
-            print(prompt)
-            print(target)
+            # print(prompt)
+            # print(target)
             self.printed = True  # 设置标志位，表示已经打印过了
 
 
@@ -209,6 +208,7 @@ class SpeechDatasetJsonl(torch.utils.data.Dataset):
                 "audio": audio_raw if self.input_type == "raw" else None,
                 "audio_mel": audio_mel if self.input_type == "mel" else None,
                 "audio_length": audio_length,
+                "audio_path":audio_path,
                 "key": key,
                 "target": target,
                 "audio_path":audio_path,
@@ -349,6 +349,8 @@ class SpeechDatasetJsonl(torch.utils.data.Dataset):
         if self.inference_mode:
             keys = [s['key'] for s in samples]
             targets = [s['target'] for s in samples]
+            audio_paths = [s['audio_path'] for s in samples]
+            prompts = [s['prompt'] for s in samples]
 
             return {
                 "input_ids": input_ids,
@@ -359,7 +361,9 @@ class SpeechDatasetJsonl(torch.utils.data.Dataset):
                 "audio_mel_post_mask": audio_mel_post_mask if self.input_type == "mel" else None,
                 "modality_mask": modality_mask,
                 "keys": keys,
-                "targets": targets
+                "targets": targets,
+                "audio_paths": audio_paths,
+                "prompts": prompts,
             }
 
         labels = torch.stack([

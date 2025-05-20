@@ -183,7 +183,8 @@ def Inference(kwargs: DictConfig):
 	gts = []
 	sources = []
 	rets = []
-
+	audio_paths = []
+	prompts = []
 	
 	for step, batch in tqdm(enumerate(test_dataloader), total=len(test_dataloader)):
 
@@ -195,7 +196,7 @@ def Inference(kwargs: DictConfig):
 		# print(model_outputs)
 		output_text = model.tokenizer.batch_decode(model_outputs, add_special_tokens=False, skip_special_tokens=True)
 
-		for key, text, target in zip(batch["keys"], output_text, batch["targets"]):	
+		for key, audio_path ,prompt,text, target in zip(batch["keys"],batch["audio_paths"],batch["prompts"], output_text, batch["targets"]):	
 			# print("Prediction:  ",key,text)
 			# print("Ground Truth:",key,target)
 			print(key,text)
@@ -203,9 +204,12 @@ def Inference(kwargs: DictConfig):
 
 			source = "eng"
 
+			audio_paths.append(audio_path)
 			rets.append(text)
 			gts.append(target)
 			sources.append(source)
+			prompts.append(prompt)
+
 			
 	torch.distributed.barrier()
 
@@ -214,23 +218,34 @@ def Inference(kwargs: DictConfig):
 	merged_gts = [None for _ in range(world_size)]
 	merged_sources = [None for _ in range(world_size)]
 	merged_responses = [None for _ in range(world_size)]
+	merged_audio_paths = [None for _ in range(world_size)]
+	merged_prompts = [None for _ in range(world_size)]
 	torch.distributed.all_gather_object(merged_gts, gts)
 	torch.distributed.all_gather_object(merged_sources, sources)
 	torch.distributed.all_gather_object(merged_responses, rets)
+	torch.distributed.all_gather_object(merged_audio_paths, audio_paths)
+	torch.distributed.all_gather_object(merged_prompts, prompts)
+
+
 
 	merged_gts = [_ for _ in itertools.chain.from_iterable(merged_gts)]
 	merged_sources = [_ for _ in itertools.chain.from_iterable(merged_sources)]
 	merged_responses = [_ for _ in itertools.chain.from_iterable(merged_responses)]
+	merged_audio_paths = [_ for _ in itertools.chain.from_iterable(merged_audio_paths)]
+	merged_prompts = [_ for _ in itertools.chain.from_iterable(merged_prompts)]
+
 
 	if torch.distributed.get_rank() == 0:
 
 		results_file = log_config.decode_log
 		with open(results_file, 'w') as f:
-			for gt, response, source in zip(merged_gts, merged_responses, merged_sources):
+			for gt, response, source,audio_path,prompt in zip(merged_gts, merged_responses, merged_sources,merged_audio_paths,merged_prompts):
 				result = {
 					'gt': gt,
 					'response': response,
 					'source': source,
+					"audio_path": audio_path,
+					"prompt":prompt,
 				}
 				f.write(json.dumps(result,ensure_ascii=False) + '\n')
 

@@ -158,9 +158,8 @@ def setup_llm(train_config, model_config, **kwargs):
     elif train_config.use_peft:
         logger.info("setup peft...")
         peft_config = generate_peft_config(train_config)
+        print(peft_config)
         model = get_peft_model(model, peft_config)
-        model = get_peft_model(model, peft_config)
-        model.config.bos_token_id = 151643
         model.print_trainable_parameters()
 
     # print(model)

@@ -2,7 +2,7 @@ export TOKENIZERS_PARALLELISM=false
 # export WANDB_MODE=offline
 # export HYDRA_FULL_ERROR=1
 export WANDB_API_KEY=974622cbbd8bb5edfed52d032a939d32dd21f611
-export CUDA_VISIBLE_DEVICES=1,2,3
+export CUDA_VISIBLE_DEVICES=1,2,3,4
 if command -v nvidia-smi &> /dev/null; then
     gpu_count=$(nvidia-smi --query-gpu=name --format=csv,noheader | wc -l)
 if [ -n "$CUDA_VISIBLE_DEVICES" ]; then
@@ -15,37 +15,28 @@ current_script=$(readlink -f "$0")
 current_dir=$(dirname "$current_script")
 code=$(realpath "$current_dir/../../../../SLAM-LLM")
 cd ${code}
-source=28lang
-mode=srt
-
-
-# /mgData3/zhaozhiyuan/vits/hit/code/data/qwen/srt-6-12-main-7
-checkpoint_dir=${code}/models/output/asr-7B-mi-28lang-srt-lora
-# checkpoint_dir=/mgData3/zhaozhiyuan/vits/hit/code/data/qwen/asr-6lang-7B-4
-output_dir=${code}/models/output/asr-7B-mi-28lang-srt-lora-2
-
-
-encoder_path_hf=${code}/models/whisper-large-v3
-llm_path=${code}/models/GemmaX2-28-9B-v0.1
-
-train_data_path=${code}/data/covost2/train_spt_3.jsonl
-val_data_path=${code}/data/covost2/test_spt_3.jsonl
-
-
-# train_data_path=${code}/data/covost2/19/train_new.jsonl
-# val_data_path=${code}/data/covost2/19/test_15.jsonl
-
-train_data_path=${code}/data/fleurs/wavs/train_300_30.jsonl
-val_data_path=${code}/data/fleurs/wavs/test_28_28_valid.jsonl
-
+source=covost2
+mode=mmt
 validnum=-1
 peft=true
-# 根据 peft 的值设置 freeze_llm 的相反值
+
+
 if [ "$peft" = "true" ]; then
     freeze_llm="false"
 else
     freeze_llm="true"
 fi
+
+checkpoint_dir=${code}/models/output/asr-7B-mi-28lang-mmt-lora-312
+output_dir=${code}/models/output/asr-7B-mi-28lang-mmt-lora-covost
+
+
+encoder_path_hf=${code}/models/whisper-large-v3
+llm_path=${code}/models/GemmaX2-28-9B-v0.1
+
+train_data_path=${code}/data/fleurs/wavs/train.jsonl
+val_data_path=${code}/data/fleurs/wavs/validation.jsonl
+
 
 
 max_epoch=$(ls -d ${checkpoint_dir}/asr_epoch_*_step_* | sed -n 's/.*asr_epoch_\([0-9]*\)_step_\([0-9]*\).*/\1/p' | sort -n | tail -1)
@@ -57,6 +48,7 @@ ckpt_name=$final_path/model.pt
 
 # 打印找到的 ckpt 文件
 echo "找到的最新 .pt 文件为: $ckpt_name"
+
 
 
 
@@ -73,8 +65,8 @@ hydra.run.dir=$output_dir \
 ++model_config.encoder_dim=1280 \
 ++model_config.encoder_projector=q-former \
 ++model_config.query_len=80 \
-++dataset_config.dataset=st_dataset \
-++dataset_config.file=examples/st_covost2/dataset/st_dataset.py:get_speech_dataset \
+++dataset_config.dataset=srt_dataset \
+++dataset_config.file=examples/st_covost2/dataset/srt_dataset.py:get_speech_dataset \
 ++dataset_config.train_data_path=$train_data_path \
 ++dataset_config.val_data_path=$val_data_path \
 ++dataset_config.input_type=mel \
@@ -90,9 +82,9 @@ hydra.run.dir=$output_dir \
 ++train_config.gradient_accumulation_steps=1 \
 ++train_config.warmup_steps=200 \
 ++train_config.total_steps=200000 \
-++train_config.lr=1e-5 \
-++train_config.batch_size_training=8 \
-++train_config.val_batch_size=16 \
+++train_config.lr=1e-4 \
+++train_config.batch_size_training=16 \
+++train_config.val_batch_size=32 \
 ++train_config.num_workers_dataloader=8 \
 ++train_config.output_dir=$output_dir \
 ++metric=acc \
@@ -115,7 +107,7 @@ torchrun \
     ++train_config.enable_ddp=true \
     ++fsdp_config.pure_bf16=true \
     ++log_config.use_wandb=true \
-    ++log_config.wandb_project_name=fleur \
+    ++log_config.wandb_project_name=fleur-tts \
     ++log_config.wandb_exp_name=yxduir \
     ++train_config.validation_interval=1000 \
     ++log_config.wandb_exp_name=${mode} \
