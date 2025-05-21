@@ -1,21 +1,26 @@
 export TOKENIZERS_PARALLELISM=false
-# export WANDB_MODE=offline
+export WANDB_MODE=offline
 # export HYDRA_FULL_ERROR=1
-export WANDB_API_KEY=974622cbbd8bb5edfed52d032a939d32dd21f611
-export CUDA_VISIBLE_DEVICES=1,2,3,4
+export CUDA_VISIBLE_DEVICES=0,1,2,3,4,5
 if command -v nvidia-smi &> /dev/null; then
     gpu_count=$(nvidia-smi --query-gpu=name --format=csv,noheader | wc -l)
+fi
 if [ -n "$CUDA_VISIBLE_DEVICES" ]; then
     gpu_count=$(echo "$CUDA_VISIBLE_DEVICES" | awk -F',' '{print NF}')
 fi
 
+
+mode=srt
+
+
+
+
 echo "GPU number: $gpu_count"
 current_script=$(readlink -f "$0")
 current_dir=$(dirname "$current_script")
-code=$(realpath "$current_dir/../../../../SLAM-LLM")
+code=$(realpath "$current_dir/../../../../LLM-SRT")
 cd ${code}
 source=fleurs
-mode=asr
 validnum=-1
 peft=true
 
@@ -26,13 +31,13 @@ else
     freeze_llm="true"
 fi
 
-checkpoint_dir=${code}/models/output/asr-7B-mi-28lang-mmt-lora-312
-output_dir=${code}/models/output/asr-7B-mi-28lang-mmt-lora-covost
+checkpoint_dir=${code}/models/output/qwen2.5-3B-mlp-15-srt-4
+output_dir=${code}/models/output/qwen2.5-3B-mlp-15-srt-5
 
 
 encoder_path_hf=${code}/models/whisper-large-v3
-llm_path=${code}/models/GemmaX2-28-9B-v0.1
-
+llm_path=${code}/models/Qwen2.5-3B
+llm_name=$(basename "$llm_path")
 train_data_path=${code}/data/fleurs/wavs/train.jsonl
 val_data_path=${code}/data/fleurs/wavs/validation.jsonl
 
@@ -54,7 +59,7 @@ hydra_args="
 hydra.run.dir=$output_dir \
 ++model_config.llm_name=Qwen2.5-7B \
 ++model_config.llm_path=$llm_path \
-++model_config.llm_dim=3584 \
+++model_config.llm_dim=2048 \
 ++model_config.encoder_name=whisper \
 ++model_config.encoder_projector_ds_rate=5 \
 ++model_config.encoder_path=$speech_encoder_path \
@@ -80,8 +85,8 @@ hydra.run.dir=$output_dir \
 ++train_config.warmup_steps=200 \
 ++train_config.total_steps=200000 \
 ++train_config.lr=1e-4 \
-++train_config.batch_size_training=16 \
-++train_config.val_batch_size=32 \
+++train_config.batch_size_training=8 \
+++train_config.val_batch_size=16 \
 ++train_config.num_workers_dataloader=8 \
 ++train_config.output_dir=$output_dir \
 ++metric=acc \
@@ -107,8 +112,5 @@ torchrun \
     ++log_config.wandb_project_name=fleur-tts \
     ++log_config.wandb_exp_name=yxduir \
     ++train_config.validation_interval=1000 \
-    ++log_config.wandb_exp_name=${mode} \
     ++train_config.use_peft=${peft} \
     $hydra_args
-fi
-        

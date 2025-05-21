@@ -39,7 +39,6 @@ import os
 import logging
 from tqdm import tqdm
 from model.slam_model_st import model_factory
-from model.slm_model import CustomSLM
 from transformers import  AutoTokenizer,AutoConfig,AutoModel
 
 import hydra
@@ -131,6 +130,13 @@ def Inference(kwargs: DictConfig):
 		local_rank = int(os.environ["LOCAL_RANK"])
 		rank = int(os.environ["RANK"])
 		world_size = int(os.environ["WORLD_SIZE"])
+	else:
+		local_rank = 0
+		rank = 0
+		world_size = 1
+	print("local_rank: ",local_rank)
+	print("rank: ",rank)
+	print("world_size: ",world_size)
 
 
 	if torch.distributed.is_initialized():
@@ -144,7 +150,6 @@ def Inference(kwargs: DictConfig):
 		logger.info("model_config: {}".format(model_config))
 		logger.info("log_config: {}".format(log_config))
 
-	beam = model_config["beam"]
 	model_factory = get_custom_model_factory(model_config, logger)
 	model, tokenizer = model_factory(train_config, model_config, **kwargs)
 			
@@ -159,17 +164,22 @@ def Inference(kwargs: DictConfig):
 	tokenizer.padding_side = 'left'
 
 
-
+	
 
 	dataset_test = get_preprocessed_dataset(
         tokenizer,
         dataset_config,
         split="test",
     )
+	if world_size > 1:
+		test_sampler = InferenceSampler(len(dataset_test))
+	else:
+		from torch.utils.data import SequentialSampler
+		test_sampler = SequentialSampler(dataset_test)
 
 	test_dataloader = torch.utils.data.DataLoader(
             dataset_test,
-			sampler=InferenceSampler(len(dataset_test)),
+			sampler=test_sampler,
             num_workers=train_config.num_workers_dataloader,
             pin_memory=True,
 			shuffle=False,
@@ -191,7 +201,7 @@ def Inference(kwargs: DictConfig):
 		for key in batch.keys():
 			batch[key] = batch[key].to(device) if isinstance(batch[key], torch.Tensor) else batch[key]
 
-		model_outputs = model.generate(**batch,beam=beam)
+		model_outputs = model.generate(**batch)
 
 		# print(model_outputs)
 		output_text = model.tokenizer.batch_decode(model_outputs, add_special_tokens=False, skip_special_tokens=True)
@@ -210,29 +220,35 @@ def Inference(kwargs: DictConfig):
 			sources.append(source)
 			prompts.append(prompt)
 
-			
-	torch.distributed.barrier()
+	if world_size > 1:
+		torch.distributed.barrier()
+		merged_gts = [None for _ in range(world_size)]
+		torch.distributed.all_gather_object(merged_gts, gts)
+		merged_gts = [None for _ in range(world_size)]
+		merged_sources = [None for _ in range(world_size)]
+		merged_responses = [None for _ in range(world_size)]
+		merged_audio_paths = [None for _ in range(world_size)]
+		merged_prompts = [None for _ in range(world_size)]
+		torch.distributed.all_gather_object(merged_gts, gts)
+		torch.distributed.all_gather_object(merged_sources, sources)
+		torch.distributed.all_gather_object(merged_responses, rets)
+		torch.distributed.all_gather_object(merged_audio_paths, audio_paths)
+		torch.distributed.all_gather_object(merged_prompts, prompts)
+
+		merged_gts = [_ for _ in itertools.chain.from_iterable(merged_gts)]
+		merged_sources = [_ for _ in itertools.chain.from_iterable(merged_sources)]
+		merged_responses = [_ for _ in itertools.chain.from_iterable(merged_responses)]
+		merged_audio_paths = [_ for _ in itertools.chain.from_iterable(merged_audio_paths)]
+		merged_prompts = [_ for _ in itertools.chain.from_iterable(merged_prompts)]
+	else:
+		merged_gts = gts
+		merged_responses = rets
+		merged_sources = sources
+		merged_audio_paths = audio_paths
+		merged_prompts = prompts
 
 
 	
-	merged_gts = [None for _ in range(world_size)]
-	merged_sources = [None for _ in range(world_size)]
-	merged_responses = [None for _ in range(world_size)]
-	merged_audio_paths = [None for _ in range(world_size)]
-	merged_prompts = [None for _ in range(world_size)]
-	torch.distributed.all_gather_object(merged_gts, gts)
-	torch.distributed.all_gather_object(merged_sources, sources)
-	torch.distributed.all_gather_object(merged_responses, rets)
-	torch.distributed.all_gather_object(merged_audio_paths, audio_paths)
-	torch.distributed.all_gather_object(merged_prompts, prompts)
-
-
-
-	merged_gts = [_ for _ in itertools.chain.from_iterable(merged_gts)]
-	merged_sources = [_ for _ in itertools.chain.from_iterable(merged_sources)]
-	merged_responses = [_ for _ in itertools.chain.from_iterable(merged_responses)]
-	merged_audio_paths = [_ for _ in itertools.chain.from_iterable(merged_audio_paths)]
-	merged_prompts = [_ for _ in itertools.chain.from_iterable(merged_prompts)]
 
 
 	if torch.distributed.get_rank() == 0:
@@ -249,7 +265,8 @@ def Inference(kwargs: DictConfig):
 				}
 				f.write(json.dumps(result,ensure_ascii=False) + '\n')
 
-	torch.distributed.barrier()
+	if world_size > 1:
+		torch.distributed.barrier()
 
 
 @dataclass

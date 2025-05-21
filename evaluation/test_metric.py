@@ -26,7 +26,9 @@ device_num = 0
 src_langs = ['ara','arz','cmn','zsm', 'ben', 'ces', 'deu', 'eng', 'fas', 'fra', 'heb', 'hin', 'ind', 'ita', 'jpn', 'khm', 'kor', 'lao', 'msa', 'mya', 'nld', 'pol', 'por', 'rus', 'spa', 'tha', 'tgl', 'tur', 'urd', 'vie', 'zho','yue','oci','mon','khk','yue']
 tgt_langs = ['ara','zsm', 'ben', 'ces', 'deu', 'eng', 'fas', 'fra', 'heb', 'hin', 'ind', 'ita', 'jpn', 'khm', 'kor', 'lao', 'msa', 'mya', 'nld', 'pol', 'por', 'rus', 'spa', 'tha', 'tgl', 'tur', 'urd', 'vie', 'zho','yue']
 
-file_path = "fleurs_enzh_test.jsonl"
+file_path = "../fleurs_enzh_srt_Qwen2.5-3B.jsonl"
+# file_path = "../test_srt_Qwen2.5-3B.jsonl"
+
 
 
 test_metrics_all = ["idx","iso3","iso2","resource","bleu","spbleu","comet","meteor","xcomet","cometwiki","wer","cer"]
@@ -162,9 +164,10 @@ with open(file_path, 'r', encoding='utf-8') as file:
         if len(split_responses) == 2:
             asr_re, st_re = split_responses
         else:
+            # continue
             print(count,response)
             print(count,gt)
-            count +=1
+            count +=1 
 
             asr_re = response
             st_re = response.split("|>")[-1] if "|>" in response else response

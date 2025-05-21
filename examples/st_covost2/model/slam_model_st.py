@@ -72,10 +72,12 @@ def setup_tokenizer(train_config, model_config, **kwargs):
         tokenizer = AutoTokenizer.from_pretrained(model_config.llm_path,trust_remote_code=True)
         
 
-        # tokenizer.pad_token_id = tokenizer.eos_token_id
+        tokenizer.pad_token_id = tokenizer.eos_token_id
         print("tokenizer.pad_token_id:",tokenizer.pad_token_id)
         print("tokenizer.eos_token_id:",tokenizer.eos_token_id)
 
+        print("eos_token:", tokenizer.eos_token)       # 输出如 "</s>" 或 "<|endoftext|>"
+        print("pad_token:", tokenizer.pad_token)       # 输出如 "<pad>" 或 "
     return tokenizer
 
 
@@ -336,7 +338,7 @@ class slam_model(nn.Module):
         if kwargs.get("inference_mode", False):
             return inputs_embeds, attention_mask
 
-        print(inputs_embeds.shape)
+        # print(inputs_embeds.shape)
         model_outputs = self.llm(inputs_embeds=inputs_embeds, attention_mask=attention_mask, labels=labels,)
         acc = -1
         if self.metric:
@@ -377,16 +379,14 @@ class slam_model(nn.Module):
             return_dict=return_dict,
             **kwargs,
         )
-
-        
         model_outputs = self.llm.generate(
             inputs_embeds=inputs_embeds,
-            max_new_tokens=kwargs.get("max_new_tokens", 300),
-            num_beams=kwargs.get("num_beams", beam),
+            max_new_tokens=kwargs.get("max_new_tokens",400),
+            num_beams=kwargs.get("num_beams", 5),
             do_sample=kwargs.get("do_sample", False),
             min_length=kwargs.get("min_new_tokens", 10),
             top_p=kwargs.get("top_p", 1.0),
-            repetition_penalty=kwargs.get("repetition_penalty", 1),
+            repetition_penalty=kwargs.get("repetition_penalty", 1.0),
             length_penalty=kwargs.get("length_penalty", 1.0),
             temperature=kwargs.get("temperature", 1.0),
             no_repeat_ngram_size=5,

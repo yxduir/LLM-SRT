@@ -52,7 +52,7 @@ class SpeechDatasetJsonl(torch.utils.data.Dataset):
         # src_lang = ['eng',"zho","jpn","kor"]
         # src_lang = ['spa']
         # src_lang = ['zho']
-        # src_lang = ['eng']
+        src_lang = ['eng']
 
 
 
@@ -79,7 +79,7 @@ class SpeechDatasetJsonl(torch.utils.data.Dataset):
 
         # tgt_lang = ['deu', 'fra', 'rus', 'jpn', "zho", "eng"]
 
-        # tgt_lang = ['zho']
+        tgt_lang = ['zho']
         # tgt_lang = ['eng']
 
 
@@ -194,16 +194,16 @@ class SpeechDatasetJsonl(torch.utils.data.Dataset):
         if self.fix_length_audio > 0:
             audio_length = self.fix_length_audio
         audio_pseudo = torch.full((audio_length,), -1) # placeholder
-        prompt_ids = self.tokenizer.encode(prompt)
-        prompt_length = len(prompt_ids)
+        prompt_id = self.tokenizer.encode(prompt)
+        prompt_length = len(prompt_id)
 
 
         if self.inference_mode:
             audio_mel = audio_mel.to(torch.float16)
 
         
-            prompt_ids = torch.tensor(prompt_ids, dtype=torch.int64)
-            example_ids = torch.cat((audio_pseudo, prompt_ids))  # [audio,prompt]
+            prompt_id = torch.tensor(prompt_id, dtype=torch.int64)
+            example_ids = torch.cat((audio_pseudo, prompt_id))  # [audio,prompt]
             example_mask = example_ids.ge(-1)  # [True,True]
 
             return {
@@ -216,7 +216,7 @@ class SpeechDatasetJsonl(torch.utils.data.Dataset):
                 "key": key,
                 "target": target,
                 "audio_path":audio_path,
-                "prompt_id":prompt_ids,
+                "prompt_id":prompt_id,
                 "prompt":prompt,
                 "source":source,
                 "prompt_length": prompt_length,
@@ -355,6 +355,7 @@ class SpeechDatasetJsonl(torch.utils.data.Dataset):
             targets = [s['target'] for s in samples]
             audio_paths = [s['audio_path'] for s in samples]
             prompts = [s['prompt'] for s in samples]
+            prompt_ids = [s['prompt_id'] for s in samples]
 
             return {
                 "input_ids": input_ids,
@@ -368,6 +369,7 @@ class SpeechDatasetJsonl(torch.utils.data.Dataset):
                 "targets": targets,
                 "audio_paths": audio_paths,
                 "prompts": prompts,
+                "prompt_ids": prompt_ids,
             }
 
         labels = torch.stack([

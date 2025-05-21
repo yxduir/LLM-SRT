@@ -2,7 +2,7 @@ export MASTER_ADDR=localhost
 # export TOKENIZERS_PARALLELISM=false
 export MASTER_PORT=12345
 export WANDB_MODE=offline
-# export CUDA_VISIBLE_DEVICES=1,2,3,4
+export CUDA_VISIBLE_DEVICES=0,1,2,3,4,5
 if [ -n "$CUDA_VISIBLE_DEVICES" ]; then
     gpu_count=$(echo "$CUDA_VISIBLE_DEVICES" | awk -F',' '{print NF}')
 elif command -v nvidia-smi &> /dev/null; then
@@ -15,12 +15,12 @@ echo "GPU number: $gpu_count"
 # get the current script's directory
 current_script=$(readlink -f "$0")
 current_dir=$(dirname "$current_script")
-code=$(realpath "$current_dir/../../../../SLAM-LLM")
+code=$(realpath "$current_dir/../../../../LLM-SRT")
 echo "Code path: ${code}"
 cd ${code}
 source=fleurs_enzh
 beam=5
-mode=mmt
+mode=srt
 validnum=-1
 
 peft=true
@@ -31,43 +31,24 @@ else
 fi
 encoder_path_hf=${code}/models/whisper-large-v3
 llm_path=${code}/models/Qwen2.5-3B
-llm_path=${code}/models/GemmaX2-28-9B-v0.1
 
 
 llm_name=$(basename "$llm_path")
 checkpoint_dir=${code}/models/llm-srt/qwen2.5-3b.pt
 
-case "$llm_name" in
-    "Qwen2.5-3B")
-        checkpoint_dir="${code}/models/llm-srt/qwen2.5-3b.pt"
-        ;;
-    "GemmaX2-28-9B-v0.1")
-        checkpoint_dir="${code}/models/llm-srt/gemmax2-9b.pt"
-        ;;
-    *)
-        echo "Unknown model: $llm_name"
-        exit 1
-        ;;
-esac
 
-case "$llm_name" in
-    "Qwen2.5-3B")
-        llm_dim=2048
-        ;;
-    "GemmaX2-28-9B-v0.1")
-        llm_dim=3584
-        ;;
-    *)
-        echo "Unknown model: $llm_name"
-        exit 1
-        ;;
-esac
 ckpt_name=$checkpoint_dir
 echo "find .pt file: $ckpt_name"
 
-decode_log=fleurs_enzh_test_${llm_name}.jsonl
+decode_log="${code}/${source}_${mode}_${llm_name}.jsonl"
 
 echo "Decode log saved to: ${decode_log}"
+
+if [ "$gpu_count" -gt 1 ]; then
+    enable_ddp=true
+else
+    enable_ddp=false
+fi
 
 # Inference
 torchrun \
@@ -82,7 +63,7 @@ torchrun \
     ++fsdp_config.pure_bf16=true \
     ++model_config.llm_name=$llm_name \
     ++model_config.llm_path=$llm_path \
-    ++model_config.llm_dim=$llm_dim \
+    ++model_config.llm_dim=2048 \
     ++model_config.query_len=80 \
     ++model_config.encoder_name=whisper \
     ++model_config.encoder_projector_ds_rate=5 \
@@ -103,8 +84,9 @@ torchrun \
     ++train_config.freeze_llm=true \
     ++train_config.batching_strategy=custom \
     ++train_config.num_epochs=1 \
-    ++train_config.val_batch_size=4 \
-    ++train_config.num_workers_dataloader=8 \
+    ++train_config.enable_ddp=$enable_ddp \
+    ++train_config.val_batch_size=32 \
+    ++train_config.num_workers_dataloader=16 \
     ++log_config.decode_log=$decode_log \
     ++ckpt_path=$ckpt_name \
     ++train_config.use_peft=true 
