@@ -5,7 +5,7 @@
 
 
 ## Multitask 
-<img src="examples/st_covost2/image/prompt.png" alt="Photo" style="width:50%;">
+<img src="examples/st_covost2/image/prompt.png" alt="Photo" style="width:75%;">
 
 
 ## Installation
