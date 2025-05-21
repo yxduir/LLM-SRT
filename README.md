@@ -18,25 +18,13 @@ cd LLM-SRT
 
 pip install -e .
 sudo apt install ffmpeg
-pip install -U openai-whisper
-pip install wandb
-pip install soundfile
-pip install evaluate
-pip install transformers
-pip install datasets
-pip install sacrebleu
-pip install jiwer
-pip install librosa
-pip install torch==2.4.0
-pip install torchaudio==2.4.0
-pip install torchvision==0.19.0
 ```
 
 ## Download Model 
 We only train the q-former projector in this recipe.
 Encoder | Adapter | LLM 
 |---|---|---
-[whisper-large-v3](https://huggingface.co/openai/whisper-large-v3) | [q-former+mlp](https://huggingface.co/yxdu/llm-srt) | [Qwen2.5-3B](https://huggingface.co/Qwen/Qwen2.5-3B) or [GemmaX2-9B](https://huggingface.co/ModelSpace/GemmaX2-28-9B-v0.1)
+[whisper-large-v3](https://huggingface.co/openai/whisper-large-v3) | [q-former+mlp](https://huggingface.co/yxdu/llm-srt) | [Qwen2.5-3B](https://huggingface.co/Qwen/Qwen2.5-3B) 
 ```
 mkdir models
 cd models/
@@ -45,8 +33,6 @@ git lfs clone https://huggingface.co/yxdu/llm-srt
 git lfs clone https://huggingface.co/openai/whisper-large-v3
 # for 3B model (support 15 languages)
 git lfs clone https://huggingface.co/Qwen/Qwen2.5-3B
-# for 9B model (support 27 languages)
-git lfs clone https://huggingface.co/ModelSpace/GemmaX2-28-9B-v0.1
 ```
 
 
@@ -92,13 +78,6 @@ bash examples/st_covost2/scripts/infer_all.sh
 bash examples/st_covost2/scripts/infer_hf.sh
 ```
 
-
-## Evaluation
-
-```
-cd evaluation
-python test_metric.py
-```
 
 
 ##  Citation
