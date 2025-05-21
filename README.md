@@ -20,6 +20,7 @@ cd LLM-SRT
 
 pip install -e .
 sudo apt install ffmpeg
+pip install -r requirements.txt
 ```
 
 ## Download Model 
