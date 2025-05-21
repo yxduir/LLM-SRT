@@ -1,3 +1,5 @@
+This project is a subproject of https://github.com/X-LANCE/SLAM-LLM.  
+
 # LLM-SRT
 
 ## Model Stracture
@@ -5,7 +7,7 @@
 
 
 ## Multitask 
-<img src="examples/st_covost2/image/prompt.png" alt="Photo" style="width:75%;">
+<img src="examples/st_covost2/image/prompt.png" alt="Photo" style="width:100%;">
 
 
 ## Installation
@@ -35,14 +37,10 @@ git lfs clone https://huggingface.co/openai/whisper-large-v3
 git lfs clone https://huggingface.co/Qwen/Qwen2.5-3B
 ```
 
-
-
-
 ## Infer Demo
-
+This is an automatic inference script for the fleurs dataset from English (eng) to Chinese (zho).
 ```
-Our inference script only supports multi-GPU. This is an automatic inference script for the fleurs dataset from English (eng) to Chinese (zho).
-CUDA_VISIBLE_DEVICES=0,1 bash examples/st_covost2/scripts/infer_hf.sh
+bash examples/st_covost2/scripts/infer_hf.sh
 ```
 
 ## Train Dataset
