@@ -7,6 +7,16 @@ LLM-SRT is is a variant of [SLAM-LLM](https://github.com/X-LANCE/SLAM-LLM), prim
 - [Update Jan. 15, 2026] The paper "SLAM-LLM: A Modular, Open-Source Multimodal Large Language Model Framework and Best Practice for Speech, Language, Audio and Music Processing" was accept by JSTSP.
 - [Update May 16, 2025] The paper "Making LLMs Better Many-to-Many Speech-to-Text Translators with Curriculum Learning" was accepted by ACL 2025.
 
+---
+
+| Model | Paper | Code |
+| --- | --- | --- |
+| **LLM-SRT** | [Making LLMs Better Many-to-Many Speech-to-Text Translators with Curriculum Learning](https://arxiv.org/pdf/2409.19510) | [Code](https://github.com/yxduir/LLM-SRT/blob/main/readme/LLM_SRT.md) |
+| **SMMT** | [Scalable Multilingual Multimodal Machine Translation with Speech-Text Fusion](https://arxiv.org/pdf/2409.19510) | [Code](https://github.com/yxduir/LLM-SRT/blob/main/readme/SMT.md) |
+| **MCAT** | [MCAT: Scaling Many-to-Many Speech-to-Text Translation with MLLMs to 70 Languages](https://arxiv.org/abs/2512.01512) | [Code](https://github.com/yxduir/m2m-70) |
+
+---
+
 ## Installation
 ```
 # Install uv (if not already installed)
@@ -23,14 +33,6 @@ uv pip install -e .
 cd ..
 ```
 
-
-| Model | Paper | Code |
-| --- | --- | --- |
-| **LLM-SRT** | [Making LLMs Better Many-to-Many Speech-to-Text Translators with Curriculum Learning](https://arxiv.org/pdf/2409.19510) | [Code](https://github.com/yxduir/LLM-SRT/tree/main/readme/LLM-SRT.md) |
-| **SMMT** | [Scalable Multilingual Multimodal Machine Translation with Speech-Text Fusion](https://arxiv.org/pdf/2409.19510) | [Code](https://github.com/yxduir/LLM-SRT/tree/main/readme/SMT.md) |
-| **MCAT** | [MCAT: Scaling Many-to-Many Speech-to-Text Translation with MLLMs to 70 Languages](https://arxiv.org/abs/2512.01512) | [Code](https://github.com/yxduir/m2m-70) |
-
----
 
 
 
