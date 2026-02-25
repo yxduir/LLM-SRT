@@ -1,0 +1,200 @@
+hydra:
+  run:
+    dir: /mgData2/yxdu/m2m-70/SLAM-LLM/output/s2tt_gemma12b_asr-enzh-qformer
+  sweep:
+    dir: multirun/${now:%Y-%m-%d}/${now:%H-%M-%S}
+    subdir: ${hydra.job.num}
+  launcher:
+    _target_: hydra._internal.core_plugins.basic_launcher.BasicLauncher
+  sweeper:
+    _target_: hydra._internal.core_plugins.basic_sweeper.BasicSweeper
+    max_batch_size: null
+    params: null
+  help:
+    app_name: ${hydra.job.name}
+    header: '${hydra.help.app_name} is powered by Hydra.
+
+      '
+    footer: 'Powered by Hydra (https://hydra.cc)
+
+      Use --hydra-help to view Hydra specific help
+
+      '
+    template: '${hydra.help.header}
+
+      == Configuration groups ==
+
+      Compose your configuration from those groups (group=option)
+
+
+      $APP_CONFIG_GROUPS
+
+
+      == Config ==
+
+      Override anything in the config (foo.bar=value)
+
+
+      $CONFIG
+
+
+      ${hydra.help.footer}
+
+      '
+  hydra_help:
+    template: 'Hydra (${hydra.runtime.version})
+
+      See https://hydra.cc for more info.
+
+
+      == Flags ==
+
+      $FLAGS_HELP
+
+
+      == Configuration groups ==
+
+      Compose your configuration from those groups (For example, append hydra/job_logging=disabled
+      to command line)
+
+
+      $HYDRA_CONFIG_GROUPS
+
+
+      Use ''--cfg hydra'' to Show the Hydra config.
+
+      '
+    hydra_help: ???
+  hydra_logging:
+    version: 1
+    formatters:
+      simple:
+        format: '[%(asctime)s][HYDRA] %(message)s'
+    handlers:
+      console:
+        class: logging.StreamHandler
+        formatter: simple
+        stream: ext://sys.stdout
+    root:
+      level: INFO
+      handlers:
+      - console
+    loggers:
+      logging_example:
+        level: DEBUG
+    disable_existing_loggers: false
+  job_logging:
+    version: 1
+    formatters:
+      simple:
+        format: '[%(asctime)s][%(name)s][%(levelname)s] - %(message)s'
+    handlers:
+      console:
+        class: logging.StreamHandler
+        formatter: simple
+        stream: ext://sys.stdout
+      file:
+        class: logging.FileHandler
+        formatter: simple
+        filename: ${hydra.runtime.output_dir}/${hydra.job.name}.log
+    root:
+      level: INFO
+      handlers:
+      - console
+      - file
+    disable_existing_loggers: false
+  env: {}
+  mode: RUN
+  searchpath: []
+  callbacks: {}
+  output_subdir: .hydra
+  overrides:
+    hydra:
+    - hydra.run.dir=/mgData2/yxdu/m2m-70/SLAM-LLM/output/s2tt_gemma12b_asr-enzh-qformer
+    - hydra.mode=RUN
+    task:
+    - ++train_config.enable_fsdp=false
+    - ++train_config.enable_ddp=true
+    - ++fsdp_config.pure_bf16=true
+    - ++log_config.use_wandb=true
+    - ++log_config.wandb_project_name=trans_gemma12b
+    - ++log_config.wandb_exp_name=yxduir
+    - ++train_config.validation_interval=1000
+    - ++log_config.wandb_exp_name=asr
+    - ++train_config.use_peft=false
+    - ++model_config.llm_name=translategemma-12b-it
+    - ++model_config.llm_path=/mgData2/yxdu/m2m-70/SLAM-LLM/../models/translategemma-12b-it
+    - ++model_config.llm_dim=3840
+    - ++model_config.encoder_name=whisper
+    - ++model_config.encoder_projector_ds_rate=5
+    - ++model_config.encoder_path=
+    - ++model_config.encoder_path_hf=/mgData2/yxdu/m2m-70/SLAM-LLM/../models/whisper-large-v3
+    - ++model_config.encoder_dim=1280
+    - ++model_config.encoder_projector=q-former
+    - ++model_config.query_len=80
+    - ++dataset_config.dataset=st_dataset
+    - ++dataset_config.file=examples/st_covost2/dataset/st_dataset.py:get_speech_dataset
+    - ++dataset_config.train_data_path=/mgData2/yxdu/data/asr/mix_en_zh/mix_train.jsonl
+    - ++dataset_config.val_data_path=/mgData2/yxdu/data/asr/mix_en_zh/mix_test_4000.jsonl
+    - ++dataset_config.input_type=mel
+    - ++dataset_config.mel_size=128
+    - ++dataset_config.fix_length_audio=80
+    - ++dataset_config.source=all
+    - ++dataset_config.mode=asr
+    - ++train_config.model_name=asr
+    - ++train_config.num_epochs=10
+    - ++train_config.freeze_encoder=true
+    - ++train_config.freeze_llm=true
+    - ++train_config.batching_strategy=custom
+    - ++train_config.gradient_accumulation_steps=1
+    - ++train_config.warmup_steps=1000
+    - ++train_config.total_steps=200000
+    - ++train_config.lr=1e-4
+    - ++train_config.batch_size_training=16
+    - ++train_config.val_batch_size=32
+    - ++train_config.num_workers_dataloader=216
+    - ++train_config.output_dir=/mgData2/yxdu/m2m-70/SLAM-LLM/output/s2tt_gemma12b_asr-enzh-qformer
+    - ++metric=acc
+    - ++train_config.use_fp16=false
+    - ++dataset_config.validnum=-2
+    - ++train_config.use_fast_kernels=false
+  job:
+    name: finetune_asr
+    chdir: null
+    override_dirname: ++dataset_config.dataset=st_dataset,++dataset_config.file=examples/st_covost2/dataset/st_dataset.py:get_speech_dataset,++dataset_config.fix_length_audio=80,++dataset_config.input_type=mel,++dataset_config.mel_size=128,++dataset_config.mode=asr,++dataset_config.source=all,++dataset_config.train_data_path=/mgData2/yxdu/data/asr/mix_en_zh/mix_train.jsonl,++dataset_config.val_data_path=/mgData2/yxdu/data/asr/mix_en_zh/mix_test_4000.jsonl,++dataset_config.validnum=-2,++fsdp_config.pure_bf16=true,++log_config.use_wandb=true,++log_config.wandb_exp_name=asr,++log_config.wandb_exp_name=yxduir,++log_config.wandb_project_name=trans_gemma12b,++metric=acc,++model_config.encoder_dim=1280,++model_config.encoder_name=whisper,++model_config.encoder_path=,++model_config.encoder_path_hf=/mgData2/yxdu/m2m-70/SLAM-LLM/../models/whisper-large-v3,++model_config.encoder_projector=q-former,++model_config.encoder_projector_ds_rate=5,++model_config.llm_dim=3840,++model_config.llm_name=translategemma-12b-it,++model_config.llm_path=/mgData2/yxdu/m2m-70/SLAM-LLM/../models/translategemma-12b-it,++model_config.query_len=80,++train_config.batch_size_training=16,++train_config.batching_strategy=custom,++train_config.enable_ddp=true,++train_config.enable_fsdp=false,++train_config.freeze_encoder=true,++train_config.freeze_llm=true,++train_config.gradient_accumulation_steps=1,++train_config.lr=1e-4,++train_config.model_name=asr,++train_config.num_epochs=10,++train_config.num_workers_dataloader=216,++train_config.output_dir=/mgData2/yxdu/m2m-70/SLAM-LLM/output/s2tt_gemma12b_asr-enzh-qformer,++train_config.total_steps=200000,++train_config.use_fast_kernels=false,++train_config.use_fp16=false,++train_config.use_peft=false,++train_config.val_batch_size=32,++train_config.validation_interval=1000,++train_config.warmup_steps=1000
+    id: ???
+    num: ???
+    config_name: prompt.yaml
+    env_set: {}
+    env_copy: []
+    config:
+      override_dirname:
+        kv_sep: '='
+        item_sep: ','
+        exclude_keys: []
+  runtime:
+    version: 1.3.2
+    version_base: '1.3'
+    cwd: /mgData2/yxdu/m2m-70/SLAM-LLM
+    config_sources:
+    - path: hydra.conf
+      schema: pkg
+      provider: hydra
+    - path: /mgData2/yxdu/m2m-70/SLAM-LLM/examples/st_covost2/conf
+      schema: file
+      provider: main
+    - path: ''
+      schema: structured
+      provider: schema
+    output_dir: /mgData2/yxdu/m2m-70/SLAM-LLM/output/s2tt_gemma12b_asr-enzh-qformer
+    choices:
+      hydra/env: default
+      hydra/callbacks: null
+      hydra/job_logging: default
+      hydra/hydra_logging: default
+      hydra/hydra_help: default
+      hydra/help: default
+      hydra/sweeper: basic
+      hydra/launcher: basic
+      hydra/output: default
+  verbose: false

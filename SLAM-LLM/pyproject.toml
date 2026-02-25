@@ -1,0 +1,36 @@
+[build-system]
+requires = ["hatchling", "hatch-requirements-txt"]
+build-backend = "hatchling.build"
+
+[project]
+name = "slam-llm"
+version = "0.0.1"
+description = "SLAM-LLM is a deep learning toolkit that allows researchers and developers to train custom multimodal large language model (MLLM), focusing on Speech, Language, Audio, Music processing. We provide detailed recipes for training and high-performance checkpoints for inference."
+readme = "README.md"
+requires-python = ">=3.8"
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "License :: Other/Proprietary License",
+    "Operating System :: OS Independent",
+]
+dynamic = ["dependencies"]
+
+[project.optional-dependencies]
+vllm = ["vllm"]
+tests = ["pytest-mock"]
+auditnlg = ["auditnlg"]
+
+[project.urls]
+"Homepage" = "https://github.com/ddlBoJack/SLAM-LLM"
+"Bug Tracker" = "https://github.com/ddlBoJack/SLAM-LLM/issues"
+
+[tool.hatch.build]
+exclude = [
+  "dist/*",
+]
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/slam_llm"]
+
+[tool.hatch.metadata.hooks.requirements_txt]
+files = ["requirements.txt"]

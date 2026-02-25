@@ -1,0 +1,50 @@
+dataset_config:
+  dataset: st_dataset
+  file: examples/st_covost2/dataset/st_dataset.py:get_speech_dataset
+  train_data_path: /mgData2/yxdu/data/asr/mix_en_zh/mix_train_time_eng.jsonl
+  val_data_path: /mgData2/yxdu/data/asr/mix_en_zh/mix_test_eng.jsonl
+  input_type: mel
+  mel_size: 128
+  fix_length_audio: 30
+  source: all
+  mode: asr
+  validnum: -2
+train_config:
+  enable_fsdp: false
+  enable_ddp: true
+  validation_interval: 1000
+  use_peft: false
+  model_name: asr
+  num_epochs: 10
+  freeze_encoder: true
+  freeze_llm: true
+  batching_strategy: custom
+  gradient_accumulation_steps: 1
+  warmup_steps: 1000
+  total_steps: 200000
+  lr: 0.0001
+  batch_size_training: 24
+  val_batch_size: 48
+  num_workers_dataloader: 24
+  output_dir: /mgData2/yxdu/m2m-70/SLAM-LLM/output/s2tt_gemma12b_asr-en
+  use_fp16: false
+  use_fast_kernels: false
+fsdp_config:
+  pure_bf16: true
+log_config:
+  use_wandb: true
+  wandb_project_name: trans_gemma12b
+  wandb_exp_name: asr
+model_config:
+  llm_name: translategemma-12b-it
+  llm_path: /mgData2/yxdu/m2m-70/SLAM-LLM/../models/translategemma-12b-it
+  llm_dim: 3840
+  encoder_name: whisper
+  encoder_projector_ds_rate: 5
+  encoder_path: ''
+  encoder_path_hf: /mgData2/yxdu/m2m-70/SLAM-LLM/../models/whisper-large-v3
+  encoder_dim: 1280
+  encoder_projector: qqm
+  query_len: 150
+metric: acc
+ckpt_path: /mgData2/yxdu/m2m-70/SLAM-LLM/output/s2tt_gemma12b_asr-enzh-2/asr_epoch_5_step_13324/model.pt

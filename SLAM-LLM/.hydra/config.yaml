@@ -1,0 +1,39 @@
+dataset_config:
+  dataset: st_dataset
+  file: examples/st_covost2/dataset/fleurs_dataset.py:get_speech_dataset
+  val_data_path: ''
+  input_type: mel
+  fix_length_audio: 80
+  mel_size: 128
+  inference_mode: true
+  source: wmt24_all
+  mode: mmt
+  validnum: -2
+train_config:
+  enable_fsdp: false
+  enable_ddp: true
+  model_name: asr
+  freeze_encoder: true
+  freeze_llm: false
+  batching_strategy: custom
+  num_epochs: 1
+  val_batch_size: 4
+  num_workers_dataloader: 8
+  use_peft: true
+fsdp_config:
+  pure_bf16: true
+model_config:
+  llm_name: Qwen2.5-7B
+  llm_path: /data_a100/models/GemmaX2-28-9B-v0.1
+  llm_dim: 4096
+  query_len: 80
+  encoder_name: whisper
+  encoder_projector_ds_rate: 5
+  encoder_path: ''
+  encoder_path_hf: /data_a100/models/whisper-large-v3
+  encoder_dim: 1280
+  encoder_projector: q-former
+  beam: 5
+log_config:
+  decode_log: /mgData3/zhaozhiyuan/vits/hit/code/SLAM-LLM/models/output/asr-7B-mi-28lang-mmt-lora-312/asr_epoch_1_step_5000/wmt24_all.jsonl
+ckpt_path: /mgData3/zhaozhiyuan/vits/hit/code/SLAM-LLM/models/output/asr-7B-mi-28lang-mmt-lora-312/asr_epoch_1_step_5000/model.pt
