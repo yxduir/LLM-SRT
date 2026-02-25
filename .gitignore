@@ -35,4 +35,9 @@ output/*.jsonl
 scripts/train*.sh
 scripts/all*.sh
 scripts/infer_demo*.sh
+SLAM-LLM/output
+SLAM-LLM/outputs
+SLAM-LLM/test_wandb
+SLAM-LLM/*.log
+save
 data/*/
