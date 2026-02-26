@@ -45,6 +45,16 @@ cd ..
   year={2025}
 }
 
+@misc{du2026scalablemultilingualmultimodalmachine,
+      title={Scalable Multilingual Multimodal Machine Translation with Speech-Text Fusion}, 
+      author={Yexing Du and Youcheng Pan and Zekun Wang and Zheng Chu and Yichong Huang and Kaiyuan Liu and Bo Yang and Yang Xiang and Ming Liu and Bing Qin},
+      year={2026},
+      eprint={2602.21646},
+      archivePrefix={arXiv},
+      primaryClass={cs.CL},
+      url={https://arxiv.org/abs/2602.21646}, 
+}
+
 @inproceedings{du2025making,
   title={Making llms better many-to-many speech-to-text translators with curriculum learning},
   author={Du, Yexing and Pan, Youcheng and Ma, Ziyang and Yang, Bo and Yang, Yifan and Deng, Keqi and Chen, Xie and Xiang, Yang and Liu, Ming and Qin, Bing},
