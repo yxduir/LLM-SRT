@@ -1,11 +1,17 @@
 # 定义模型列表
 models=(
+    "openai/whisper-large-v3-turbo"
     "openai/whisper-large-v3"
     "ModelSpace/GemmaX2-28-9B-v0.1"
     "yxdu/mcat-large"
     "yxdu/mcat-small"
-    "google/gemma-3-27b-it"
+    "yxdu/llm-srt"
+    "yxdu/smt"
+    "Qwen/Qwen2.5-3B"
+    # "google/gemma-3-27b-it"
     "Unbabel/wmt22-comet-da"
+    "xiaomi-research/GemmaX2-28-2B-v0.2"
+    "xiaomi-research/GemmaX2-28-9B-v0.2"
 )
 
 # 循环下载

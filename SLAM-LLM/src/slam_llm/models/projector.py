@@ -131,21 +131,20 @@ class EncoderProjectorQFormer(nn.Module):
         self.query.data.normal_(mean=0.0, std=1.0)
         self.qformer = Blip2QFormerModel(configuration)
 
-        # (encoder维度)1280->2048(llm维度)   3B
-        # 1280->5120    32B
+
         if self.llm_dim <= 1536:
             self.linear = nn.Linear(configuration.hidden_size, self.llm_dim)
             self.norm = nn.LayerNorm(self.llm_dim, eps=1e-5)
         elif self.llm_dim <= 2560:
-            self.linear1 = nn.Linear(configuration.hidden_size, 1536)  # 从 768 -> 2560
-            self.relu = nn.ReLU()  # 激活函数
-            self.linear2 = nn.Linear(1536, self.llm_dim)  # 从 2560 -> 5120
-            self.norm = nn.LayerNorm(self.llm_dim, eps=1e-5)  # 最终归一化
+            self.linear1 = nn.Linear(configuration.hidden_size, 1536)  
+            self.relu = nn.ReLU() 
+            self.linear2 = nn.Linear(1536, self.llm_dim)  
+            self.norm = nn.LayerNorm(self.llm_dim, eps=1e-5)  
         else:
-            self.linear1 = nn.Linear(configuration.hidden_size, 2560)  # 从 768 -> 2560
-            self.relu = nn.ReLU()  # 激活函数
-            self.linear2 = nn.Linear(2560, self.llm_dim)  # 从 2560 -> 5120
-            self.norm = nn.LayerNorm(self.llm_dim, eps=1e-5)  # 最终归一化
+            self.linear1 = nn.Linear(configuration.hidden_size, 2560) 
+            self.relu = nn.ReLU() 
+            self.linear2 = nn.Linear(2560, self.llm_dim)  
+            self.norm = nn.LayerNorm(self.llm_dim, eps=1e-5)  
         
        
 
@@ -162,10 +161,10 @@ class EncoderProjectorQFormer(nn.Module):
         if self.llm_dim <= 1536:
             query_proj = self.norm(self.linear(query_output.last_hidden_state))
         else:
-            x = self.linear1(query_output.last_hidden_state)  # 从 1280 -> 2560
-            x = self.relu(x)  # 激活
-            x = self.linear2(x)  # 从 2560 -> 5120
-            query_proj = self.norm(x)  # LayerNorm 归一化
+            x = self.linear1(query_output.last_hidden_state) 
+            x = self.relu(x)  
+            x = self.linear2(x)  
+            query_proj = self.norm(x) 
 
         
         return query_proj

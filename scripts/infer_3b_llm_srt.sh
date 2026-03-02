@@ -26,7 +26,7 @@ beam=5
 
 validnum=-1
 
-encoder_path_hf=${code}/../models/whisper-large-v3
+encoder_path_hf=${code}/../models/whisper-large-v3-encoder
 ckpt_name=${code}/../models/llm-srt/llm_srt_3b.pt
 llm_path=${code}/../models/Qwen2.5-3B
 

@@ -401,12 +401,7 @@ class SpeechDatasetJsonl(torch.utils.data.Dataset):
             iso_2_map = iso3_to_iso2_map[prompt_lang]
             prompt = "<"+iso_2_map+">"
             target = target.split(prompt)[0]
-        # elif self.mode == "srt":
-        #     src_lang = prompt[2:5]
-        #     tgt_lang = prompt[9:12]
-        #     prompt = "<" + iso3_to_iso2_map[src_lang] + "><" + iso3_to_iso2_map[tgt_lang] + ">"
-        #     target = target.replace(f"<|{src_lang}|>",f"<{iso3_to_iso2_map[src_lang]}>").replace(f"<|{tgt_lang}|>",f"<{iso3_to_iso2_map[tgt_lang]}>")
-            
+
         
         if not self.printed:  # 如果没有打印过，则打印一次
             print(prompt)
