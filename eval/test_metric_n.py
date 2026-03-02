@@ -16,7 +16,7 @@ import jiwer  # New requirement
 # -------------------- Parameters & Setup ----------------------
 
 file_path = "../output/srt_engcmn_q-former_fleurs_eng_test_s2tt.jsonl"
-# file_path = "../output/smt_all_q-former_test_2016_flickr.jsonl"
+file_path = "../output/smt_all_q-former_test_2016_flickr.jsonl"
 gpus = [0]
 batch_size = 64
 

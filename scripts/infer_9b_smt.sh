@@ -26,7 +26,7 @@ beam=1
 
 validnum=-2
 
-encoder_path_hf=${code}/../models/whisper-large-v3
+encoder_path_hf=${code}/../models/whisper-large-v3-encoder
 ckpt_name=${code}/../models/smt/smt_9b.pt
 llm_path=${code}/../models/GemmaX2-28-9B-v0.1
 
@@ -42,7 +42,6 @@ encoder_projector=q-former
 source=all
 peft=true
 freeze_llm="false"
-encoder_projector=q-former
 query_len=80
 encoder_projector_ds_rate=5
 fix_length_audio=80
@@ -73,11 +72,10 @@ torchrun \
     ++fsdp_config.pure_bf16=true \
     ++model_config.llm_name=$llm_name \
     ++model_config.llm_path=$llm_path \
-    ++model_config.llm_dim=3584 \
+    ++model_config.llm_dim=$llm_dim \
     ++model_config.query_len=$query_len \
     ++model_config.encoder_name=whisper \
     ++model_config.encoder_projector_ds_rate=5 \
-    ++model_config.encoder_path=$speech_encoder_path \
     ++model_config.encoder_path_hf=$encoder_path_hf \
     ++model_config.encoder_dim=1280 \
     ++model_config.encoder_projector=$encoder_projector \
@@ -97,7 +95,7 @@ torchrun \
     ++train_config.freeze_llm=$freeze_llm \
     ++train_config.batching_strategy=custom \
     ++train_config.num_epochs=1 \
-    ++train_config.val_batch_size=32 \
+    ++train_config.val_batch_size=128 \
     ++train_config.num_workers_dataloader=32 \
     ++log_config.decode_log=$decode_log \
     ++ckpt_path=$ckpt_name \
