@@ -11,9 +11,9 @@ LLM-SRT is is a variant of [SLAM-LLM](https://github.com/X-LANCE/SLAM-LLM), prim
 
 | Model | Paper | Code |
 | :--- | :--- | :--- |
-| **LLM-SRT** | <nobr>Making LLMs Better Many-to-Many Speech-to-Text Translators with Curriculum Learning</nobr> | [Code](https://github.com/yxduir/LLM-SRT/blob/main/readme/LLM_SRT.md) |
-| **SMT** | <nobr>Scalable Multilingual Multimodal Machine Translation with Speech-Text Fusion</nobr> | [Code](https://github.com/yxduir/LLM-SRT/blob/main/readme/SMT.md) [🤗](https://huggingface.co/yxdu/smt-9b-hf) |
-| **MCAT** | <nobr>MCAT: Scaling Many-to-Many Speech-to-Text Translation with MLLMs to 70 Languages</nobr> | [Code](https://github.com/yxduir/m2m-70) |
+| **LLM-SRT** | Making LLMs Better Many-to-Many Speech-to-Text Translators with Curriculum Learning | [Code](https://github.com/yxduir/LLM-SRT/blob/main/readme/LLM_SRT.md) |
+| **SMT** | Scalable Multilingual Multimodal Machine Translation with Speech-Text Fusion | [Code](https://github.com/yxduir/LLM-SRT/blob/main/readme/SMT.md) [🤗](https://huggingface.co/yxdu/smt-9b-hf) |
+| **MCAT** | MCAT: Scaling Many-to-Many Speech-to-Text Translation with MLLMs to 70 Languages | [Code](https://github.com/yxduir/m2m-70) |
 
 
 ---
