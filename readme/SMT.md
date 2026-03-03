@@ -4,7 +4,7 @@ pip install torch transformers datasets tqdm sacrebleu
 ```
 
 ## Demo 
-```
+``` python
 import torch, json
 from tqdm import tqdm
 from transformers import AutoModel
