@@ -11,9 +11,9 @@ LLM-SRT is is a variant of [SLAM-LLM](https://github.com/X-LANCE/SLAM-LLM), prim
 
 | Model | Paper | Code |
 | :--- | :--- | :--- |
-| **LLM-SRT** | Making LLMs Better Many-to-Many Speech-to-Text Translators with Curriculum Learning | [Code](https://github.com/yxduir/LLM-SRT/blob/main/readme/LLM_SRT.md) |
-| **SMT** | Scalable Multilingual Multimodal Machine Translation with Speech-Text Fusion | [Code](https://github.com/yxduir/LLM-SRT/blob/main/readme/SMT.md) [🤗](https://huggingface.co/yxdu/smt-9b-hf) |
-| **MCAT** | MCAT: Scaling Many-to-Many Speech-to-Text Translation with MLLMs to 70 Languages | [Code](https://github.com/yxduir/m2m-70) |
+| **LLM-SRT** | Making LLMs Better Many-to-Many Speech-to-Text Translators with Curriculum Learning | [![GitHub](https://img.shields.io/badge/Github-181717?style=flat&logo=github&logoColor=white)](https://github.com/yxduir/LLM-SRT/blob/main/readme/LLM_SRT.md)|
+| **SMT** | <nobr>Scalable Multilingual Multimodal Machine Translation with Speech-Text Fusion</nobr> | [![GitHub](https://img.shields.io/badge/Github-181717?style=flat&logo=github&logoColor=white)](https://github.com/yxduir/LLM-SRT/blob/main/readme/SMT.md) [![HF](https://img.shields.io/badge/%F0%9F%A4%97%20-HF-F9E2AF?style=flat)](https://huggingface.co/yxdu/smt-9b-hf) |
+| **MCAT** | MCAT: Scaling Many-to-Many Speech-to-Text Translation with MLLMs to 70 Languages | [![GitHub](https://img.shields.io/badge/Github-181717?style=flat&logo=github&logoColor=white)](https://github.com/yxduir/m2m-70) |
 
 
 ---
