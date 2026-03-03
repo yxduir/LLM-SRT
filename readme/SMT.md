@@ -51,3 +51,16 @@ for (s, t), (hyps, refs) in res_map.items():
     score = bleu.corpus_score(hyps, [refs]).score
     print(f"{s}->{t:<7} | {score:<6.2f} | {len(hyps)}")
 ```
+
+##  Citation
+```
+@misc{du2026scalablemultilingualmultimodalmachine,
+      title={Scalable Multilingual Multimodal Machine Translation with Speech-Text Fusion}, 
+      author={Yexing Du and Youcheng Pan and Zekun Wang and Zheng Chu and Yichong Huang and Kaiyuan Liu and Bo Yang and Yang Xiang and Ming Liu and Bing Qin},
+      year={2026},
+      eprint={2602.21646},
+      archivePrefix={arXiv},
+      primaryClass={cs.CL},
+      url={https://arxiv.org/abs/2602.21646}, 
+}
+```
