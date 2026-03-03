@@ -23,7 +23,7 @@ language_28 = ['ara', 'ben', 'ces', 'deu', 'eng', 'fas', 'fra', 'heb', 'hin', 'i
 src_lang = language_9
 tgt_lang = language_28
 
-input_file = "/mgData2/yxdu/data/fleurs_all/data/srt_test.jsonl"
+input_file = "../data/multi30k_test_tts_smt/test_2016_flickr.jsonl"
 
 
 

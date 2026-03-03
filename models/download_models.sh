@@ -11,6 +11,7 @@ models=(
     "Unbabel/wmt22-comet-da"
     "xiaomi-research/GemmaX2-28-2B-v0.2"
     "xiaomi-research/GemmaX2-28-9B-v0.2"
+    "yxdu/smt-9b-hf"
 )
 
 # 循环下载

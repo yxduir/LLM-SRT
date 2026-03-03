@@ -32,3 +32,4 @@ SLAM-LLM/test_wandb
 SLAM-LLM/*.log
 save
 data/*/
+output

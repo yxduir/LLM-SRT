@@ -33,7 +33,7 @@ src_langs = language_9
 tgt_langs = language_28
 
 # Updated metrics list
-test_metrics = ["idx", "iso3", "spbleu", "comet", "wer_cer"]
+test_metrics = ["idx", "iso3", "bleu","spbleu", "comet", "wer_cer"]
 
 # -------------------- Data Loading ----------------------
 lang_groups = defaultdict(lambda: defaultdict(lambda: {
@@ -53,7 +53,14 @@ with open(file_path, 'r', encoding='utf-8') as f:
         tgt_lang = prompt.split("<|")[-1].split("|>")[0]
         if src_lang == tgt_lang or src_lang not in src_langs: continue
 
+
+
         prompt_tag = f"<|{src_lang}|><|{tgt_lang}|>"
+
+        if prompt_tag not in gt:
+            gt = prompt + gt
+
+
         split_res = response.split(prompt_tag)
         split_gt = gt.split(prompt_tag)
 

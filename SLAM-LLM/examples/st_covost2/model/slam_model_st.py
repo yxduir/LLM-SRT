@@ -334,7 +334,6 @@ class slam_model(nn.Module):
                 self.encoder.eval()
             if self.model_config.encoder_path_hf is not None:
                 encoder_outs = self.encoder(audio_mel.permute(0, 2, 1)).last_hidden_state # bs*seq*dim
-                # print("encoder_outs",encoder_outs.shape)
             elif self.model_config.encoder_name == "whisper":
                 encoder_outs = self.encoder.extract_variable_length_features(audio_mel.permute(0, 2, 1)) # bs*seq*dim
             if self.model_config.encoder_name == "beats":

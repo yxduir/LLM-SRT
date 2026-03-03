@@ -145,6 +145,7 @@ class SpeechDatasetJsonl(torch.utils.data.Dataset):
                     "zul"
                     ]
         language_1 =  ['eng']
+        language_4 = ['eng','cmn','kor','jpn']
         language_28 = ['ara', 'ben', 'ces', 'deu', 'eng', 'fas', 'fra', 'heb', 'hin', 'ind', 'ita', 'jpn', 'khm', 'kor', 'lao', 'msa', 'mya', 'nld', 'pol', 'por', 'rus', 'spa', 'tha', 'tgl', 'tur', 'urd', 'vie', 'cmn']
         language_12 = ["cmn","eng","ara","ind","tur","tam","swh","tha","jpn","kor","hun","vie"]
         language_ab = ["ara","cmn","ind","jpn","khm","kor","lao","mya","tha","tur","vie","eng"]
@@ -279,6 +280,11 @@ class SpeechDatasetJsonl(torch.utils.data.Dataset):
                             self.data_list.append(data_dict)
                     elif self.source == "0128":
                         src_langs = language_1
+                        tgt_langs = language_28
+                        if src_lang in src_langs and  tgt_lang in tgt_langs:
+                            self.data_list.append(data_dict)
+                    elif self.source == "0428":
+                        src_langs = language_4
                         tgt_langs = language_28
                         if src_lang in src_langs and  tgt_lang in tgt_langs:
                             self.data_list.append(data_dict)
@@ -423,8 +429,6 @@ class SpeechDatasetJsonl(torch.utils.data.Dataset):
         elif self.input_type == "mel":
             audio_raw = whisper.pad_or_trim(audio_raw)
             audio_mel = whisper.log_mel_spectrogram(audio_raw, n_mels=self.mel_size).permute(1, 0)
-
-        
         
         if self.fix_length_audio > 0:
             audio_length = self.fix_length_audio
