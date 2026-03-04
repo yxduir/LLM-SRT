@@ -12,6 +12,8 @@ models=(
     "xiaomi-research/GemmaX2-28-2B-v0.2"
     "xiaomi-research/GemmaX2-28-9B-v0.2"
     "yxdu/smt-9b-hf"
+    "NiuTrans/LMT-60-4B"
+    "Infomaniak-AI/vllm-translategemma-4b-it"
 )
 
 # 循环下载

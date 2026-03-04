@@ -1,5 +1,7 @@
 import json
 import os
+import argparse
+from datetime import datetime
 from vllm import LLM, SamplingParams
 from transformers.models.whisper.english_normalizer import BasicTextNormalizer
 normalizer = BasicTextNormalizer()
@@ -9,25 +11,64 @@ from transformers import AutoProcessor, AutoTokenizer,LogitsProcessor
 from vllm.sampling_params import BeamSearchParams
 import csv
 import re
-os.environ["CUDA_VISIBLE_DEVICES"] = "0"
+os.environ["CUDA_VISIBLE_DEVICES"] = "3"
+
+PROMPT_TEMPLATE_FILE = os.path.join(os.path.dirname(__file__), "prompt_templates.jsonl")
+
+def load_prompt_templates(template_file=PROMPT_TEMPLATE_FILE):
+    templates = {}
+    if os.path.exists(template_file):
+        with open(template_file, 'r', encoding='utf-8') as f:
+            for line in f:
+                if line.strip():
+                    data = json.loads(line)
+                    templates[data["model_pattern"]] = data["template"]
+    return templates
+
+PROMPT_TEMPLATES = load_prompt_templates()
 
 src_lang = ['eng']
 
 # src_lang = ['eng']
+language_1 = ["cmn","eng"]
+language_2 = ["cmn","eng"]
 language_9 = ["cmn","eng","ara","ind","tur","tha","jpn","kor","vie"]
 
 
 tgt_lang = ['ara', 'ben', 'ces', 'deu', 'eng', 'fas', 'fra', 'heb', 'hin', 'ind', 'ita', 'jpn', 'khm', 'kor', 'lao', 'msa', 'mya', 'nld', 'pol', 'por', 'rus', 'spa', 'tha', 'tgl', 'tur', 'urd', 'vie', 'zho']
 language_28 = ['ara', 'ben', 'ces', 'deu', 'eng', 'fas', 'fra', 'heb', 'hin', 'ind', 'ita', 'jpn', 'khm', 'kor', 'lao', 'msa', 'mya', 'nld', 'pol', 'por', 'rus', 'spa', 'tha', 'tgl', 'tur', 'urd', 'vie', 'cmn']
+language_70 = ['afr', 'amh', 'ara', 'asm', 'azj', 'bel', 'ben', 'bos', 'bul', 'cat', 'ces', 'cmn', 'cym', 'dan', 'deu', 'ell', 'eng', 'est', 'fas', 'fin', 'fra', 'glg', 'guj', 'heb', 'hin', 'hrv', 'hun', 'hye', 'ind', 'isl', 'ita', 'jav', 'jpn', 'kan', 'kat', 'kaz', 'khm', 'kir', 'kor', 'lao', 'lav', 'lit', 'mal', 'mkd', 'msa', 'mya', 'nld', 'nob', 'npi', 'pan', 'pol', 'por', 'ron', 'rus', 'slk', 'slv', 'spa', 'srp', 'swe', 'swh', 'tam', 'tel', 'tgl', 'tha', 'tur', 'ukr', 'urd', 'uzb', 'vie', 'yue']
 
-src_lang = language_9
-tgt_lang = language_28
+# Combined 60-language list based on user's High/Medium/Low-resource classification
+# High (13), Medium (18), Low (29) => total 60
+language_60 = [
+    # High-resource (13) - ISO 639-3
+    'ara', 'eng', 'spa', 'deu', 'fra', 'ita', 'jpn', 'nld', 'pol', 'por', 'rus', 'tur', 'cmn',
+    # Medium-resource (18) - ISO 639-3
+    'bul', 'ben', 'ces', 'dan', 'ell', 'fas', 'fin', 'hin', 'hun', 'ind', 'kor', 'nob', 'ron', 'slk', 'swe', 'tha', 'ukr', 'vie',
+    # Low-resource (29) - ISO 639-3
+    'amh', 'azj', 'bod', 'heb', 'hrv', 'hye', 'isl', 'jav', 'kat', 'kaz', 'khm', 'kir', 'lao', 'mon', 'mar', 'msa', 'mya', 'npi', 'pus', 'sin', 'swh', 'tam', 'tel', 'tgk', 'tgl', 'uig', 'urd', 'uzb', 'yue'
+]
+# TranslateGemma 支持的 55 种语言 (ISO 639-3)
+language_transgemma55 = [
+    'ara', 'ben', 'bul', 'cat', 'ces', 'cmn', 'cym', 'dan', 'deu', 'ell', 'eng', 'est', 'fas', 'fin', 'fra', 'glg', 'guj', 'heb', 'hin', 'hrv', 'hun', 'hye', 'ind', 'isl', 'ita', 'jav', 'jpn', 'kan', 'kat', 'kaz', 'khm', 'kir', 'kor', 'lao', 'lav', 'lit', 'mal', 'mkd', 'msa', 'mya', 'nld', 'nob', 'pan', 'pol', 'por', 'ron', 'rus', 'slk', 'slv', 'spa', 'srp', 'swe', 'tam', 'tel', 'tha', 'tur', 'ukr', 'urd', 'vie'
+]
 
-input_file = "../data/multi30k_test_tts_smt/test_2016_flickr.jsonl"
+# 是否启用互逆（bidirectional）匹配：
+# True -> 接受 language_2 <-> language_60 双向对
+# False -> 仅接受 language_2 -> language_60 单向对
+
+input_file = "/code/data/fleurs_all/data/srt_test.jsonl"
+
+model_vllm = "../models/vllm-translategemma-4b-it"
 
 
 
-model_vllm = "../models/GemmaX2-28-9B-v0.1"
+
+
+src_lang = language_1
+tgt_lang = language_transgemma55
+reversible = True
 
 
 tokenizer = AutoTokenizer.from_pretrained(model_vllm)
@@ -48,6 +89,17 @@ LANGUAGE_MAPPING = {
     for lang in pycountry.languages
     if hasattr(lang, 'alpha_3')
 }
+
+ISO3_TO_ISO2 = {}
+ISO3_TO_LANG_NAME = {}
+iso_3_2_file = os.path.join(os.path.dirname(__file__), "iso_3_2.jsonl")
+if os.path.exists(iso_3_2_file):
+    with open(iso_3_2_file, 'r', encoding='utf-8') as f:
+        for line in f:
+            if line.strip():
+                data = json.loads(line)
+                ISO3_TO_ISO2[data["iso3"]] = data["iso2"]
+                ISO3_TO_LANG_NAME[data["iso3"]] = data["lang_en"]
 
 
 
@@ -103,8 +155,17 @@ def process_jsonl(input_file, output_file,llm,model_vllm):
             if tgt_lang == "all":
                 if prompt[2:5] in src_lang:
                     lines.append(line)
-            elif prompt[2:5] in src_lang and prompt[9:12] in tgt_lang and src_lang!=tgt_lang:
-                lines.append(line)
+            else:
+                src_code = prompt[2:5]
+                tgt_code = prompt[9:12]
+                
+                if reversible:
+                    if (src_code in src_lang and tgt_code in tgt_lang) or (src_code in tgt_lang and tgt_code in src_lang):
+                        if src_code != tgt_code:
+                            lines.append(line)
+                else:
+                    if src_code in src_lang and tgt_code in tgt_lang and src_code != tgt_code:
+                        lines.append(line)
         count = 1
 
         sampling_params = SamplingParams(max_tokens=512, top_k=1, top_p=1,temperature=0,n=1)
@@ -130,61 +191,32 @@ def process_jsonl(input_file, output_file,llm,model_vllm):
 
                 src_text = gt.split(prompt)[0]
 
-                # Gemma3翻译指令
-                translation_prompt = (
-                    f"Only return in {LANGUAGE_MAPPING[target_lang]}. Translate this from {LANGUAGE_MAPPING[source_lang]} to {LANGUAGE_MAPPING[target_lang]}:\n"
-                    f"{LANGUAGE_MAPPING[source_lang]}: {src_text}\n"
-                    f"{LANGUAGE_MAPPING[target_lang]}:"
-                )
+                # 使用模板字典生成翻译指令
+                translation_prompt = None
+                for pattern, template in PROMPT_TEMPLATES.items():
+                    if pattern in model_vllm:
+                        if "<<<source>>>" in template:
+                            src_iso2 = ISO3_TO_ISO2.get(source_lang, source_lang)
+                            tgt_iso2 = ISO3_TO_ISO2.get(target_lang, target_lang)
+                            translation_prompt = template.format(
+                                source_lang=src_iso2,
+                                target_lang=tgt_iso2,
+                                src_text=src_text
+                            )
+                        else:
+                            translation_prompt = template.format(
+                                source_lang=LANGUAGE_MAPPING.get(source_lang, source_lang),
+                                target_lang=LANGUAGE_MAPPING.get(target_lang, target_lang),
+                                src_text=src_text
+                            )
+                        break
                 
-                
-                # GemmaX2-28-9B构造翻译指令
-                if "GemmaX2-28-9B" in model_vllm:
-                    translation_prompt = (
-                        f"""Translate this from {LANGUAGE_MAPPING[source_lang]} to {LANGUAGE_MAPPING[target_lang]}:\n
-                        {LANGUAGE_MAPPING[source_lang]}: {src_text}\n
-                        {LANGUAGE_MAPPING[target_lang]}:"""
+                if translation_prompt is None:
+                    translation_prompt = PROMPT_TEMPLATES.get("default", "").format(
+                        source_lang=LANGUAGE_MAPPING.get(source_lang, source_lang),
+                        target_lang=LANGUAGE_MAPPING.get(target_lang, target_lang),
+                        src_text=src_text
                     )
-                if "gemma-3" in model_vllm:
-                    translation_prompt = (f"""<bos><start_of_turn>user
-                        You are a skilled translator who only outputs translations without any explanations or repetitions.\n
-                        Translate the following sentences from {source_lang} to {target_lang}: {src_text}<end_of_turn>
-                        <start_of_turn>model""")
-                
-                # llama 翻译指令
-                if "llama" in model_vllm:
-                    translation_prompt = f"""<|begin_of_text|><|start_header_id|>system<|end_header_id|>
-                    You are a helpful translator, only return the translation result, without other message.<|eot_id|><|start_header_id|>user<|end_header_id|>
-                    Translate this from {LANGUAGE_MAPPING[source_lang]} to {LANGUAGE_MAPPING[target_lang]}{src_text}\n:<|eot_id|><|start_header_id|>assistant<|end_header_id|>"""
-
-                #  #qwen 翻译指令Í
-                if "Qwen2.5" in model_vllm:
-                    translation_prompt = f"""<|im_start|>system
-                        You are a skilled translator who only outputs translations without any explanations or additional information.<|im_end|>
-                        <|im_start|>user
-                        Translate the following {LANGUAGE_MAPPING[source_lang]} sentence into {LANGUAGE_MAPPING[target_lang]}: {src_text}<|im_end|>
-                        <|im_start|>assistant"""
-                if "Qwen3" in model_vllm:
-                    if "Qwen3-Next" in model_vllm:
-                        translation_prompt = f"""
-                            <|im_start|>user
-                            You are a skilled translator who only outputs translations without any explanations or additional information.
-                            Translate the following {LANGUAGE_MAPPING[source_lang]} sentence into {LANGUAGE_MAPPING[target_lang]}: {src_text}.<|im_end|>
-                            <|im_start|>assistant\n"""
-                    else:
-                        translation_prompt = f"""
-                            <|im_start|>user
-                            You are a skilled translator who only outputs translations without any explanations or additional information.
-                            Translate the following {LANGUAGE_MAPPING[source_lang]} sentence into {LANGUAGE_MAPPING[target_lang]}: {src_text}.<|im_end|>
-                            <|im_start|>assistant
-                            <think>
-
-                            </think>
-                            """
-
-                if "LLaMAX3" in model_vllm:
-                    translation_prompt = Prompt_template(src_text, LANGUAGE_MAPPING[source_lang], LANGUAGE_MAPPING[target_lang])
-     
                 
                 templates.append(translation_prompt)
                 src_texts.append(src_text)
@@ -206,7 +238,7 @@ def process_jsonl(input_file, output_file,llm,model_vllm):
                 new_data = {
                     "gt": original_data["gt"],
                     "prompt": original_data["prompt"],
-                    # "source": sources[j],
+                    "source": sources[j],
                     "response": f"{src_texts[j]}{original_data['prompt']}{translated_text}"
                 }
                 
@@ -222,13 +254,20 @@ if __name__ == '__main__':
 
 
 
-    llm = LLM(model_vllm, dtype="bfloat16", trust_remote_code=True, tensor_parallel_size=tensor_parallel_size)
-    # 修改 process_jsonl 函数的调用部分
+    llm = LLM(
+        model_vllm,
+        dtype="bfloat16",
+        trust_remote_code=True,
+        tensor_parallel_size=tensor_parallel_size,
+    )
 
 
     # 使用 os.path 模块处理路径
     base_name = os.path.splitext(os.path.basename(input_file))[0]  # 获取文件名（不含路径和扩展名）
-    output_file = f"{base_name}_vlm_{mode}_{model_vllm.split('/')[-1]}.jsonl"  # 输出文件路径
+    date_str = datetime.now().strftime("%Y%m%d")
+    output_dir = f"jsonl/{date_str}"
+    os.makedirs(output_dir, exist_ok=True)
+    output_file = f"{output_dir}/{base_name}_vlm_{mode}_{model_vllm.split('/')[-1]}.jsonl"  # 输出文件路径
 
     print(f"Input file: {input_file}")
     print(f"Output file: {output_file}")

@@ -1,23 +1,25 @@
 import os
 import json
 import csv
+import argparse
+from datetime import datetime
 from collections import defaultdict
 from multiprocessing import Process, Queue, current_process
-import os
+import torch
 os.environ["TRANSFORMERS_OFFLINE"] = "1"
 os.environ["HF_DATASETS_OFFLINE"] = "1"
-import torch
 from sacrebleu.metrics import BLEU
 from transformers.models.whisper.english_normalizer import BasicTextNormalizer
 from comet import load_from_checkpoint
-import jiwer  # New requirement
+import jiwer
 
 
 # -------------------- Parameters & Setup ----------------------
 
 file_path = "../output/srt_engcmn_q-former_fleurs_eng_test_s2tt.jsonl"
 file_path = "../output/smt_all_q-former_test_2016_flickr.jsonl"
-gpus = [0]
+file_path = "jsonl/srt_test_idx_vlm_mt_LMT-60-4B.jsonl"
+gpus = [0,1,2,3]
 batch_size = 64
 
 normalizer = BasicTextNormalizer()
@@ -26,11 +28,21 @@ normalizer = BasicTextNormalizer()
 CER_LANGS = {'jpn', 'kor', 'tha', 'cmn', 'yue'} 
 
 language_9  = ["cmn","eng","ara","ind","tur","tha","jpn","kor","vie"]
+language_2 = ["cmn","eng"]
 language_11  = ["cmn","eng","ara","ind","tur","tha","jpn","kor","vie","khm","lao","mya"]
 language_28 = ['ara', 'ben', 'ces', 'deu', 'eng', 'fas', 'fra', 'heb', 'hin', 'ind', 'ita', 'jpn', 'khm', 'kor', 'lao', 'msa', 'mya', 'nld', 'pol', 'por', 'rus', 'spa', 'tha', 'tgl', 'tur', 'urd', 'vie', 'cmn']
 language_70 = ['afr', 'amh', 'ara', 'asm', 'azj', 'bel', 'ben', 'bos', 'bul', 'cat', 'ces', 'cmn', 'cym', 'dan', 'deu', 'ell', 'eng', 'est', 'fas', 'fin', 'fra', 'glg', 'guj', 'heb', 'hin', 'hrv', 'hun', 'hye', 'ind', 'isl', 'ita', 'jav', 'jpn', 'kan', 'kat', 'kaz', 'khm', 'kir', 'kor', 'lao', 'lav', 'lit', 'mal', 'mkd', 'msa', 'mya', 'nld', 'nob', 'npi', 'pan', 'pol', 'por', 'ron', 'rus', 'slk', 'slv', 'spa', 'srp', 'swe', 'swh', 'tam', 'tel', 'tgl', 'tha', 'tur', 'ukr', 'urd', 'uzb', 'vie', 'yue']
-src_langs = language_9
-tgt_langs = language_28
+language_60 = [
+    # High-resource (13) - ISO 639-3
+    'ara', 'eng', 'spa', 'deu', 'fra', 'ita', 'jpn', 'nld', 'pol', 'por', 'rus', 'tur', 'cmn',
+    # Medium-resource (18) - ISO 639-3
+    'bul', 'ben', 'ces', 'dan', 'ell', 'fas', 'fin', 'hin', 'hun', 'ind', 'kor', 'nob', 'ron', 'slk', 'swe', 'tha', 'ukr', 'vie',
+    # Low-resource (29) - ISO 639-3
+    'amh', 'azj', 'bod', 'heb', 'hrv', 'hye', 'isl', 'jav', 'kat', 'kaz', 'khm', 'kir', 'lao', 'mon', 'mar', 'msa', 'mya', 'npi', 'pus', 'sin', 'swh', 'tam', 'tel', 'tgk', 'tgl', 'uig', 'urd', 'uzb', 'yue'
+]
+src_langs = language_2
+tgt_langs = language_60
+reversible = True
 
 # Updated metrics list
 test_metrics = ["idx", "iso3", "bleu","spbleu", "comet", "wer_cer"]
@@ -51,7 +63,16 @@ with open(file_path, 'r', encoding='utf-8') as f:
 
         src_lang = prompt.split("|>")[0].split("<|")[-1]
         tgt_lang = prompt.split("<|")[-1].split("|>")[0]
-        if src_lang == tgt_lang or src_lang not in src_langs: continue
+        
+        if src_lang == tgt_lang:
+            continue
+        
+        if reversible:
+            if not ((src_lang in src_langs and tgt_lang in tgt_langs) or (src_lang in tgt_langs and tgt_lang in src_langs)):
+                continue
+        else:
+            if src_lang not in src_langs or tgt_lang not in tgt_langs:
+                continue
 
 
 
@@ -148,7 +169,10 @@ if __name__ == "__main__":
         p.join()
 
     # Write CSV & Compute Averages
-    output_csv = f"./csv/{file_path.split('/')[-1].split('.')[0]}_evaluated.csv"
+    date_str = datetime.now().strftime("%Y%m%d")
+    output_dir = f"./csv/{date_str}"
+    os.makedirs(output_dir, exist_ok=True)
+    output_csv = f"{output_dir}/{file_path.split('/')[-1].split('.')[0]}_evaluated.csv"
     with open(output_csv, 'w', newline='', encoding='utf-8') as csvfile:
         writer = csv.writer(csvfile)
         writer.writerow(test_metrics)

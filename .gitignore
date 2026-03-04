@@ -33,3 +33,4 @@ SLAM-LLM/*.log
 save
 data/*/
 output
+eval/jsonl
