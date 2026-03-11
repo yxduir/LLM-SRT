@@ -153,6 +153,9 @@ class SpeechDatasetJsonl(torch.utils.data.Dataset):
         language_50 = ["ara","bul","ben","cat","ces","dan","deu","ell","spa","eng","est","fin","fil","fra","guj","heb","hin","hrv","hun","ind","isl","ita","jpn","kan","kor","lit","lav","mal","mar","nld","nor","pan","pol","por","ron","rus","slk","slv","srp","swe","swa","tam","tel","tha","tur","ukr","urd","vie","cmn","yue","zul"]
         language_67 = ['afr', 'ara', 'ast', 'bel', 'ben', 'bos', 'bul', 'cat', 'ceb', 'ces', 'cmn', 'cym', 'dan', 'deu', 'ell', 'est', 'fas', 'fin', 'fra', 'glg', 'guj', 'heb', 'hin', 'hrv', 'hun', 'hye', 'ind', 'isl', 'ita', 'jav', 'jpn', 'kan', 'kat', 'kaz', 'kor', 'lao', 'lav', 'lit', 'ltz', 'mal', 'mar', 'mkd', 'mlt', 'msa', 'nld', 'nob', 'npi', 'oci', 'pan', 'pol', 'por', 'ron', 'rus', 'slk', 'slv', 'spa', 'srp', 'swe', 'swh', 'tam', 'tel', 'tgl', 'tha', 'tur', 'ukr', 'urd', 'uzb', 'vie', 'yue', 'eng']
         language_71 = ['afr', 'amh', 'ara', 'asm', 'azj', 'bel', 'ben', 'bos', 'bul', 'cat', 'ces', 'cmn', 'cym', 'dan', 'deu', 'ell', 'eng', 'est', 'fas', 'fin', 'fra', 'glg', 'guj', 'heb', 'hin', 'hrv', 'hun', 'hye', 'ind', 'isl', 'ita', 'jav', 'jpn', 'kan', 'kat', 'kaz', 'khm', 'kir', 'kor', 'lao', 'lav', 'lit', 'mal', 'mkd', 'mon', 'msa', 'mya', 'nld', 'nob', 'npi', 'pan', 'pol', 'por', 'ron', 'rus', 'slk', 'slv', 'spa', 'srp', 'swe', 'swh', 'tam', 'tel', 'tgl', 'tha', 'tur', 'ukr', 'urd', 'uzb', 'vie', 'yue']
+        
+        language_apec = ['eng', 'msa', 'fra', 'spa', 'cmn', 'yue', 'ind', 'jpn', 'kor', 'tgl', 'rus', 'tha', 'vie', 'tam']
+        
         # 设置随机种子，确保结果可复现
         random_seed = 42  # 可以替换为任意整数
         random.seed(random_seed)
@@ -357,11 +360,16 @@ class SpeechDatasetJsonl(torch.utils.data.Dataset):
                         tgt_langs = language_28
                         if src_lang in src_langs and  tgt_lang in tgt_langs:
                             self.data_list.append(data_dict)
+                    elif self.source == "apec":
+                        src_langs = language_apec
+                        tgt_langs = language_apec
+                        if src_lang in src_langs and  tgt_lang in tgt_langs:
+                            self.data_list.append(data_dict)
                 random.shuffle(self.data_list)  
                 if self.validnum == -1:
                     random.shuffle(self.data_list)
-                    if len(self.data_list)>1000:
-                        self.data_list=self.data_list[:1000]
+                    if len(self.data_list)>10000:
+                        self.data_list=self.data_list[:10000]
                 elif self.validnum == -2:
                     pass
                 else:
@@ -401,12 +409,12 @@ class SpeechDatasetJsonl(torch.utils.data.Dataset):
         if self.mode == "st":
             prompt = prompt
             target = target.split(prompt)[1]
-        elif self.mode == "asr":
-            prompt = prompt[:7]
-            prompt_lang = prompt[2:5]
-            iso_2_map = iso3_to_iso2_map[prompt_lang]
-            prompt = "<"+iso_2_map+">"
-            target = target.split(prompt)[0]
+        # elif self.mode == "asr":
+        #     prompt = prompt[:7]
+        #     prompt_lang = prompt[2:5]
+        #     iso_2_map = iso3_to_iso2_map[prompt_lang]
+        #     prompt = "<"+iso_2_map+">"
+        #     target = target.split(prompt)[0]
 
         
         if not self.printed:  # 如果没有打印过，则打印一次
