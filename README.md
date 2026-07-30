@@ -1,10 +1,11 @@
 # LLM-SRT
-LLM-SRT is is a variant of [SLAM-LLM](https://github.com/X-LANCE/SLAM-LLM), primarily focusing on Speech Translation tasks.
+LLM-SRT is a variant of [SLAM-LLM](https://github.com/X-LANCE/SLAM-LLM), primarily focusing on Speech Translation tasks.
 - **License**: CC BY-NC-SA-4.0
 
 # News
+- [Update Jul. 30, 2026] The paper "MCAT: Scaling Many-to-Many Speech-to-Text Translation with MLLMs to 70 Languages" was published in IEEE/ACM TASLP.
 - [Update Jan. 26, 2026] The paper "Scalable Multilingual Multimodal Machine Translation with Speech-Text Fusion" was accepted by ICLR 2026.
-- [Update Jan. 15, 2026] The paper "SLAM-LLM: A Modular, Open-Source Multimodal Large Language Model Framework and Best Practice for Speech, Language, Audio and Music Processing" was accept by JSTSP.
+- [Update Jan. 15, 2026] The paper "SLAM-LLM: A Modular, Open-Source Multimodal Large Language Model Framework and Best Practice for Speech, Language, Audio and Music Processing" was accepted by JSTSP.
 - [Update May 16, 2025] The paper "Making LLMs Better Many-to-Many Speech-to-Text Translators with Curriculum Learning" was accepted by ACL 2025.
 
 ---
@@ -39,21 +40,23 @@ cd ..
 
 ##  Citation
 ```
-@article{du2025mcat,
-  title={MCAT: Scaling Many-to-Many Speech-to-Text Translation with MLLMs to 70 Languages},
-  author={Du, Yexing and Liu, Kaiyuan and Pan, Youcheng and Yang, Bo and Deng, Keqi and Chen, Xie and Xiang, Yang and Liu, Ming and Qin, Bin and Wang, YaoWei},
-  journal={arXiv preprint arXiv:2512.01512},
-  year={2025}
+@ARTICLE{11481964,
+  author={Du, Yexing and Liu, Kaiyuan and Pan, Youcheng and Yang, Bo and Deng, Keqi and Chen, Xie and Xiang, Yang and Liu, Ming and Qin, Bing and Wang, YaoWei},
+  journal={IEEE Transactions on Audio, Speech and Language Processing}, 
+  title={MCAT: Scaling Many-to-Many Speech-to-Text Translation With MLLMs to 70 Languages}, 
+  year={2026},
+  volume={34},
+  number={},
+  pages={2876-2887},
+  keywords={Feeds;Radio broadcasting;Frequency modulation;LoRa;Electronic mail;Video games;Videos;Internet;Video equipment;Modulation;Speech-to-text translation;multimodal large language models;curriculum learning},
+  doi={10.1109/TASLPRO.2026.3684396}
 }
 
-@misc{du2026scalablemultilingualmultimodalmachine,
-      title={Scalable Multilingual Multimodal Machine Translation with Speech-Text Fusion}, 
-      author={Yexing Du and Youcheng Pan and Zekun Wang and Zheng Chu and Yichong Huang and Kaiyuan Liu and Bo Yang and Yang Xiang and Ming Liu and Bing Qin},
-      year={2026},
-      eprint={2602.21646},
-      archivePrefix={arXiv},
-      primaryClass={cs.CL},
-      url={https://arxiv.org/abs/2602.21646}, 
+@inproceedings{duscalable,
+  title={Scalable Multilingual Multimodal Machine Translation with Speech-Text Fusion},
+  author={Du, Yexing and Pan, Youcheng and Wang, Zekun and Chu, Zheng and Huang, Yichong and Liu, Kaiyuan and Yang, Bo and Xiang, Yang and Liu, Ming and Qin, Bing},
+  booktitle={The Fourteenth International Conference on Learning Representations},
+  year={2026}
 }
 
 @inproceedings{du2025making,
