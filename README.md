@@ -15,22 +15,24 @@
 
 ## 📋 Overview
 
-LLM-SRT is a speech translation toolkit built upon [SLAM-LLM](https://github.com/X-LANCE/SLAM-LLM), featuring a series of models for scalable many-to-many speech-to-text translation. The project explores how multimodal large language models can be effectively adapted for speech translation tasks across a diverse set of languages.
+LLM-SRT is a speech translation toolkit built upon [SLAM-LLM](https://github.com/X-LANCE/SLAM-LLM), featuring a series of models for scalable many-to-many speech-to-text translation.
 
 ## 📰 News
 
-- **2026-07-30**: MCAT paper published in IEEE/ACM Transactions on Audio, Speech and Language Processing (TASLP).
+- **2026-05-28**: [ESRT-4B](https://huggingface.co/yxdu/ESRT-4B) released on Hugging Face.
+- **2026-04-15**: MCAT paper published in IEEE Transactions on Audio, Speech and Language Processing (TASLP).
 - **2026-01-26**: SMT paper accepted by ICLR 2026.
 - **2026-01-15**: SLAM-LLM paper accepted by IEEE Journal of Selected Topics in Signal Processing (JSTSP).
 - **2025-05-16**: LLM-SRT paper accepted by ACL 2025.
 
 ## 🚀 Models
 
-| Model | Paper | Checkpoints & Code |
-| :--- | :--- | :--- |
-| **MCAT** 🆕 | **MCAT: Scaling Many-to-Many Speech-to-Text Translation with MLLMs to 70 Languages** <br> Y. Du, K. Liu, Y. Pan, B. Yang, K. Deng, X. Chen, Y. Xiang, M. Liu, B. Qin, Y. Wang <br> *IEEE/ACM TASLP, 2026* | [![Code](https://img.shields.io/badge/Github-181717?style=flat&logo=github&logoColor=white)](https://github.com/yxduir/m2m-70) |
-| **SMT** | **Scalable Multilingual Multimodal Machine Translation with Speech-Text Fusion** <br> Y. Du, Y. Pan, Z. Wang, Z. Chu, Y. Huang, K. Liu, B. Yang, Y. Xiang, M. Liu, B. Qin <br> *ICLR, 2026* | [![Code](https://img.shields.io/badge/Github-181717?style=flat&logo=github&logoColor=white)](https://github.com/yxduir/LLM-SRT/blob/main/readme/SMT.md) [![HF](https://img.shields.io/badge/%F0%9F%A4%97%20-HuggingFace-FFD21E?style=flat)](https://huggingface.co/yxdu/smt-9b-hf) |
-| **LLM-SRT** | **Making LLMs Better Many-to-Many Speech-to-Text Translators with Curriculum Learning** <br> Y. Du, Y. Pan, Z. Ma, B. Yang, Y. Yang, K. Deng, X. Chen, Y. Xiang, M. Liu, B. Qin <br> *ACL, 2025* | [![Code](https://img.shields.io/badge/Github-181717?style=flat&logo=github&logoColor=white)](https://github.com/yxduir/LLM-SRT/blob/main/readme/LLM_SRT.md) |
+| Model             | Paper · Models & Code                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        | Features                                      |
+| :---------------- | :---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | :-------------------------------------------- |
+| **ESRT** 🆕 | [**Bandwidth-Efficient and Privacy-Preserving Edge-Cloud Many-to-Many Speech Translation**](https://arxiv.org/abs/2605.28642) `<br>` Y. Du, K. Liu, Y. Pan, B. Yang, M. Liu, B. Qin, Y. Xiang `<br>` *arXiv, 2026* `<br>` [![Code](https://img.shields.io/badge/Github-181717?style=flat&logo=github&logoColor=white)](https://github.com/yxduir/ESRT) [![Models](https://img.shields.io/badge/%F0%9F%A4%97%20-Models-FFD21E?style=flat)](https://huggingface.co/yxdu/ESRT-4B)                                               | edge device<br />1B/4B/12B · 45 languages  |
+| **MCAT**    | [**MCAT: Scaling Many-to-Many Speech-to-Text Translation with MLLMs to 70 Languages**](https://arxiv.org/abs/2512.01512) `<br>` Y. Du, K. Liu, Y. Pan, B. Yang, K. Deng, X. Chen, Y. Xiang, M. Liu, B. Qin, Y. Wang `<br>` *IEEE TASLP, 2026* `<br>` [![Code](https://img.shields.io/badge/Github-181717?style=flat&logo=github&logoColor=white)](https://github.com/yxduir/m2m-70)                                                                                                                                    | 9B 28 languages<br />27B · 70 languages      |
+| **SMT**     | [**Scalable Multilingual Multimodal Machine Translation with Speech-Text Fusion**](https://arxiv.org/abs/2602.21646) `<br>` Y. Du, Y. Pan, Z. Wang, Z. Chu, Y. Huang, K. Liu, B. Yang, Y. Xiang, M. Liu, B. Qin `<br>` *ICLR, 2026* `<br>` [![Code](https://img.shields.io/badge/Github-181717?style=flat&logo=github&logoColor=white)](https://github.com/yxduir/LLM-SRT/blob/main/readme/SMT.md) [![Models](https://img.shields.io/badge/%F0%9F%A4%97%20-Models-FFD21E?style=flat)](https://huggingface.co/yxdu/smt-9b-hf) | 9B 28 languages                              |
+| **LLM-SRT** | [**Making LLMs Better Many-to-Many Speech-to-Text Translators with Curriculum Learning**](https://arxiv.org/abs/2409.19510) `<br>` Y. Du, Y. Pan, Z. Ma, B. Yang, Y. Yang, K. Deng, X. Chen, Y. Xiang, M. Liu, B. Qin `<br>` *ACL, 2025* `<br>` [![Code](https://img.shields.io/badge/Github-181717?style=flat&logo=github&logoColor=white)](https://github.com/yxduir/LLM-SRT/blob/main/readme/LLM_SRT.md)                                                                                                            | 3B/7B/32B 15 languages                        |
 
 ## 🔧 Installation
 
@@ -58,6 +60,16 @@ cd ..
 If you find this project helpful for your research, please consider citing the relevant papers:
 
 ```bibtex
+@misc{du2026bandwidthefficientprivacypreservingedgecloudmanytomany,
+      title={Bandwidth-Efficient and Privacy-Preserving Edge-Cloud Many-to-Many Speech Translation}, 
+      author={Yexing Du and Kaiyuan Liu and Youcheng Pan and Bo Yang and Ming Liu and Bing Qin and Yang Xiang},
+      year={2026},
+      eprint={2605.28642},
+      archivePrefix={arXiv},
+      primaryClass={cs.AI},
+      url={https://arxiv.org/abs/2605.28642}, 
+}
+
 @ARTICLE{11481964,
   author={Du, Yexing and Liu, Kaiyuan and Pan, Youcheng and Yang, Bo and Deng, Keqi and Chen, Xie and Xiang, Yang and Liu, Ming and Qin, Bing and Wang, YaoWei},
   journal={IEEE Transactions on Audio, Speech and Language Processing},
