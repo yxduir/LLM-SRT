@@ -19,9 +19,9 @@ LLM-SRT is a speech translation toolkit built upon [SLAM-LLM](https://github.com
 
 ## 📰 News
 
-- **2026-04-15**: MCAT paper published in IEEE Transactions on Audio, Speech and Language Processing (TASLP).
+- **2026-04-15**: MCAT paper published in IEEE TASLP.
 - **2026-01-26**: SMT paper accepted by ICLR 2026.
-- **2026-01-15**: SLAM-LLM paper accepted by IEEE Journal of Selected Topics in Signal Processing (JSTSP).
+- **2026-01-15**: SLAM-LLM paper accepted by IEEE JSTSP.
 - **2025-05-16**: LLM-SRT paper accepted by ACL 2025.
 
 ## 🚀 Models
