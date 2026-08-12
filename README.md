@@ -1,3 +1,5 @@
+
+
 <div align="center">
 
 # LLM-SRT
@@ -38,6 +40,9 @@ LLM-SRT is a speech translation toolkit built upon [SLAM-LLM](https://github.com
 ```bash
 # Install uv (if not already installed)
 curl -LsSf https://astral.sh/uv/install.sh | sh
+
+# Make uv available in the current shell session
+source "$HOME/.local/bin/env"
 
 # Clone the repository
 git clone https://github.com/yxduir/LLM-SRT
